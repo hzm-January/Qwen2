@@ -1,9 +1,9 @@
 #!/bin/bash
 export CUDA_DEVICE_MAX_CONNECTIONS=1
-export CUDA_VISIBLE_DEVICES=5,6,7
+export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 DIR_ID=$(date '+%Y%m%d-%H%M%S')
-OUTPUT_DIR="/public/whr/hzm/model/02-qwen-sft/$DIR_ID"
+OUTPUT_DIR="/public/whr/hzm/model/qwen2-sft/$DIR_ID"
 
 # Guide:
 # This script supports distributed training on multi-gpu workers (as well as single-worker training).
@@ -87,7 +87,7 @@ torchrun $DISTRIBUTED_ARGS finetune.py \
     --data_path $DATA \
     --bf16 True \
     --output_dir $OUTPUT_DIR \
-    --num_train_epochs 2 \
+    --num_train_epochs 10 \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 1 \
@@ -95,14 +95,14 @@ torchrun $DISTRIBUTED_ARGS finetune.py \
     --save_strategy "steps" \
     --save_steps 1000 \
     --save_total_limit 10 \
-    --learning_rate 1e-5 \
+    --learning_rate 1e-4 \
     --weight_decay 0.01 \
     --adam_beta2 0.95 \
     --warmup_ratio 0.01 \
     --lr_scheduler_type "cosine" \
     --logging_steps 1 \
     --report_to tensorboard \
-    --model_max_length 512 \
+    --model_max_length 8192 \
     --lazy_preprocess True \
     --use_lora ${USE_LORA} \
     --q_lora ${Q_LORA} \
