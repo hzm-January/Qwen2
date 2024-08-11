@@ -9,7 +9,7 @@ build:
     python: "3.8"
 
 sphinx:
-   configuration: docs/source/conf.py
+   configuration: docs/source/config.py
 
 # If using Sphinx, optionally build your docs in additional formats such as PDF
 formats:

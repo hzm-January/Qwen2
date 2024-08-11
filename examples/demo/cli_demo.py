@@ -35,13 +35,13 @@ Commands:
     :history / :his         Show history                        显示对话历史
     :seed                   Show current random seed            显示当前随机种子
     :seed <N>               Set random seed to <N>              设置随机种子
-    :conf                   Show current generation config      显示生成配置
-    :conf <key>=<value>     Change generation config            修改生成配置
-    :reset-conf             Reset generation config             重置生成配置
+    :config                   Show current generation config      显示生成配置
+    :config <key>=<value>     Change generation config            修改生成配置
+    :reset-config             Reset generation config             重置生成配置
 '''
 _ALL_COMMAND_NAMES = [
     'help', 'h', 'exit', 'quit', 'q', 'clear', 'cl', 'clear-history', 'clh', 'history', 'his',
-    'seed', 'conf', 'reset-conf',
+    'seed', 'config', 'reset-config',
 ]
 
 
@@ -214,7 +214,7 @@ def main():
                         print(f'[INFO] Random seed changed to {new_seed}')
                         seed = new_seed
                     continue
-            elif command in ['conf']:
+            elif command in ['config']:
                 if len(command_words) == 1:
                     print(model.generation_config)
                 else:
@@ -233,7 +233,7 @@ def main():
                             print(f'[INFO] Change config: model.generation_config.{conf_key} = {conf_value}')
                             setattr(model.generation_config, conf_key, conf_value)
                 continue
-            elif command in ['reset-conf']:
+            elif command in ['reset-config']:
                 print('[INFO] Reset generation config')
                 model.generation_config = deepcopy(orig_gen_config)
                 print(model.generation_config)

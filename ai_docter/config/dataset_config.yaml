@@ -1,0 +1,39 @@
+table_ids: [ 1,2 ]
+label_ids: [ 0,1,2,3 ]
+shuffle: True
+seed: 42
+label_column_name: '0= N 1=FFKC 2=SKC 3=CKC'
+binary_class: True
+train_dataset_ratio: 0.8
+test_dataset_ratio: 0.2
+tune_hyperparams: False
+dataset_name: 'yiduo'
+path:
+  dataset_dir: '/public/whr/hzm/code/qwen2/ai_docter/source'
+  output_dir: 'data'
+file_name:
+  org_data: 'patient_infos.xlsx'
+  abbr_mapping: 'abbr_mapping.json'
+  sft_train_data: 'sft_train_data.jsonl'
+  dpo_train_data: 'dpo_train_data.jsonl'
+  test_data: 'test_data.jsonl'
+  test_label: 'test_label.jsonl'
+prompt:
+  finetune_diagnose_prefix: "The patient's diagnosis details indicate the following: "
+  finetune_diagnose_require: "Does the diagnosis details of this patient show a keratoconus disease? yes or no?"
+  finetune_answer_require: "Please answer this question with yes or no."
+  diagnose_in_context_learning: "The following detection indicators and theoretical basis are known for diagnosing whether one has keratoconus:
+    1. The frequency, duration, strength, preference and location of the patient's eye rubbing. Theoretical basis: Frequent and forceful eye rubbing is considered to be one of the risk factors for keratoconus, because mechanical eye rubbing can exert pressure on the cornea, causing it to deform and thin.
+    2. Does the patient have a family history of keratoconus. Theoretical basis: Keratoconus has a certain genetic tendency, and a family history of the disease increases the risk of disease.
+    3. Does the patient have symptoms of trichiasis and dry eye syndrome. Theoretical basis: Patients with trichiasis or dry eye syndrome may rub their eyes due to discomfort, increasing the risk of keratoconus.
+    4. The patient's occupation, daily electronic screen usage time, daily electronic screen usage time in a dark environment, working or living in a dusty environment, and working or studying at night. Theoretical basis: Long-term use of electronic screens may cause eye fatigue and dry eyes, thereby increasing the frequency of eye rubbing; a large amount of dusty environment may cause eye discomfort and may also increase the risk of eye rubbing; working or studying at night may cause eye fatigue, thereby increasing the frequency of eye rubbing.
+    5. Does the patient have negative feelings (depression, despair, anxiety, depression), and satisfaction with the current life situation. Theoretical basis: Psychological state may indirectly affect the habit of rubbing eyes. Depression or stress may increase unconscious eye rubbing behavior.
+    6. Whether the patient smokes, drinks, and has a history of pregnancy. Theoretical basis: Smoking, drinking, and pregnancy may affect corneal health. Although there is less direct association with keratoconus, it may be an auxiliary risk factor.
+    7. Whether the patient has used exogenous sex hormone drugs. Theoretical basis: If exogenous sex hormone drugs have not been used, the effect of hormone drugs on corneal health is ruled out.
+    8. The patient's sleeping position. Theoretical basis: Some sleeping positions may cause the eyes to be squeezed, affecting corneal health."
+  diagnose_prompt_ltsbs: "Let's think step by step."
+  diagnose_prompt_tools: "Please search for relevant information online before making a diagnosis."
+
+
+
+

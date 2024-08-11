@@ -43,7 +43,7 @@ while [[ "$1" != "" ]]; do
     shift
 done
 
-if [ ! -e ${QWEN_CHECKPOINT_PATH}/config.json ]; then
+if [ ! -e ${QWEN_CHECKPOINT_PATH}/conf.json ]; then
     echo "Checkpoint config.json file not found in ${QWEN_CHECKPOINT_PATH}, exit."
     exit 1
 fi
