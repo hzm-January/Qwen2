@@ -4,6 +4,7 @@ import yaml
 import argparse
 from pathlib import Path
 from loguru import logger
+from peft import AutoPeftModelForCausalLM, PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
@@ -47,30 +48,48 @@ def main():
     args = load_config()
     # dir_id = '20240725-104805'
     # dir_id = '20240811-131954'
-    dir_id = '20240811-134819' # '20240811-230536'
+    sft_dir_id = '20240811-134819'
+    dpo_dir_id = '20240811-214158'  # '20240811-210134'  # '20240811-201031'
 
     diagnose_test_dataset_json = os.path.join(args.path['dataset_dir'], args.file_name['test_data'])
     diagnose_test_label_json = os.path.join(args.path['dataset_dir'], args.file_name['test_label'])
+    base_model_dir = os.path.join(args.ft_path['sft_model_dir'], sft_dir_id)
+    dpo_model_dir = os.path.join(args.ft_path['dpo_model_dir'], dpo_dir_id)
 
-    # diagnose_test_dataset_json = os.path.join(args.path['dataset_dir'], args.file_name['test_fs_data'])
-    # diagnose_test_label_json = os.path.join(args.path['dataset_dir'], args.file_name['test_fs_label'])
-    model_dir = os.path.join(args.ft_path['sft_model_dir'], dir_id)
-    diagnose_test_dataset_dir = os.path.join(model_dir, 'predict_result')
+    diagnose_test_dataset_dir = os.path.join(dpo_model_dir, 'predict_result')
 
     diagnose_predict_result_json = os.path.join(diagnose_test_dataset_dir, 'diagnose_predict_result.json')
 
     F_T = 1  # positive flag
     F_F = 0  #
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_dir,  # path to the output directory
-        torch_dtype="auto",
+    # base_model = AutoModelForCausalLM.from_pretrained(
+    #     base_model_dir,  # path to the output directory
+    #     device_map="cuda:0",
+    #     trust_remote_code=True,
+    #     bf16=True
+    # )
+    #
+    # model = PeftModel.from_pretrained(base_model, dpo_model_dir, device_map="cuda:0", trust_remote_code=True,
+    #                                   bf16=True)
+
+    # tokenizer = AutoTokenizer.from_pretrained(base_model_dir, trust_remote_code=True)
+    base_model = AutoModelForCausalLM.from_pretrained(
+        base_model_dir,
         device_map="cuda:7",
-        trust_remote_code=True
-    ).eval()
+        torch_dtype="auto",
+        trust_remote_code=True,
+    )
+
+    model = PeftModel.from_pretrained(base_model, dpo_model_dir)
+
+    model.eval()
+    # merged_model = model.merge_and_unload()
+    # max_shard_size and safe serialization are not necessary.
+    # They respectively work for sharding checkpoint and save the model to safetensors
 
     tokenizer = AutoTokenizer.from_pretrained(args.ft_path['base_model_dir'], trust_remote_code=True)
-    if not hasattr(tokenizer, 'base_model_dir'):
+    if not hasattr(tokenizer, 'model_dir'):
         tokenizer.model_dir = args.ft_path['base_model_dir']
 
     with open(diagnose_test_dataset_json, 'r') as file:
@@ -79,7 +98,7 @@ def main():
         label_info = [json.loads(line) for line in file]
 
     patient_cnt = len(label_info)
-    logger.info(f"---- data count ----: {patient_cnt}")
+    print("---- data count ----: ", patient_cnt)
 
     correct = 0
     TP = 0
@@ -90,11 +109,11 @@ def main():
     predicts = []
     for i in range(patient_cnt):
         # print(diagnose_test_dataset[i])
-        content = diagnose_test_dataset[i]+'\n'+args.prompt['finetune_diagnose_require']
+        content = diagnose_test_dataset[i] + '\n' + args.prompt['finetune_diagnose_require']
         messages = [
-                    {"role": "system", "content": "You are an ophthalmology specialist."},
-                    {"role": "user", "content": content}
-                ]
+            {"role": "system", "content": "You are an ophthalmology specialist."},
+            {"role": "user", "content": content}
+        ]
 
         text = tokenizer.apply_chat_template(
             messages,
@@ -114,7 +133,7 @@ def main():
         response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
 
         print('----------------')
-        if i <5: logger.info(response)
+        if i < 5: logger.info(response)
         # new_query = diagnose_test_dataset[i]+"请根据检测结果诊断该人员是否患有圆锥角膜病。"
         # response, history = model.chat(tokenizer, query=new_query, history=history)
         # label = F_T if label_info[i] else F_F

@@ -140,9 +140,36 @@ def preprocess(args, df):
     df = preprocess_yd(args, df)
     df = preprocess_format(args, df)
     df = preprocess_abbr(args, df)
+    df = preprocess_feature_select(args, df)
     df = preprocess_finetune(args, df)
     return df
 
+
+def preprocess_feature_select(args, df):
+    df = df[[
+        'Steepest point of the front surface keratometry displacement in the y-axis',
+        'Dist. Apex-Thin.Loc. [mm](Dist. C-T)',
+        'K1 B (D)',
+        'K1 F (D)',
+        'Root-mean-square of total aberrations of whole cornea',
+        'BAD Dy',
+        'Mean eccentricity in the central 30 degrees by Fourier analysis',
+        'Steepest point of the front surface keratometry displacement in the x-axis',
+        'Index of height asymmetry',
+        'Maximum keratometry of the front surface',
+        'BAD Dt',
+        'Pachy Apex(CCT)',
+        'Ambrósio’s relational thickness in the horizontal profile',
+        'BAD Da',
+        'index of vertical asymmetry',
+        'RMS (CF)',
+        'BAD Df',
+        'Corneal volume in a 3mm diameter zone around the corneal apex',
+        'K2 F (D)',
+        'Pachy Prog Index Max.',
+        'label'
+    ]]
+    return df
 
 def preprocess_yd(args, df):
     # rename label column as label_i in each sheet
@@ -218,19 +245,19 @@ def main():
     # 3 template
     sft_train_queries, dpo_train_queries, test_queries, test_labels = note_template(args, dataset)
 
-    with open(os.path.join(args.path['dataset_dir'], args.file_name['sft_train_data']), 'w') as f:
+    with open(os.path.join(args.path['dataset_dir'], args.file_name['sft_fs_train_data']), 'w') as f:
         for row in sft_train_queries:
             f.write(json.dumps(row, ensure_ascii=False) + '\n')
         # json.dump(sft_train_queries, f, ensure_ascii=False) # json
-    with open(os.path.join(args.path['dataset_dir'], args.file_name['dpo_train_data']), 'w') as f:
+    with open(os.path.join(args.path['dataset_dir'], args.file_name['dpo_fs_train_data']), 'w') as f:
         for row in dpo_train_queries:
             f.write(json.dumps(row, ensure_ascii=False) + '\n')
         # json.dump(dpo_train_queries, f, ensure_ascii=False)
-    with open(os.path.join(args.path['dataset_dir'], args.file_name['test_data']), 'w') as f:
+    with open(os.path.join(args.path['dataset_dir'], args.file_name['test_fs_data']), 'w') as f:
         for row in test_queries:
             f.write(json.dumps(row, ensure_ascii=False) + '\n')
         # json.dump(test_queries, f, ensure_ascii=False)
-    with open(os.path.join(args.path['dataset_dir'], args.file_name['test_label']), 'w') as f:
+    with open(os.path.join(args.path['dataset_dir'], args.file_name['test_fs_label']), 'w') as f:
         for row in test_labels:
             f.write(json.dumps(row, ensure_ascii=False) + '\n')
         # json.dump(test_labels, f, ensure_ascii=False)

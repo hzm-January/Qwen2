@@ -42,7 +42,7 @@ def initial_args():
     train_args = load_config(args.train_args_path)
 
     if not os.path.exists(train_args.output_dir):
-        os.mkdir(train_args.output_dir)
+        os.makedirs(train_args.output_dir)
     logger.add(join(train_args.output_dir, 'train.log'))
     logger.info("train_args:{}".format(train_args))
     logger.info("common_args:{}".format(train_args))

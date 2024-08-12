@@ -7,6 +7,7 @@ from typing import Optional, Union, List, Literal, Dict
 from transformers import TrainingArguments, SchedulerType, IntervalStrategy
 from transformers.training_args import OptimizerNames
 from trl import DPOConfig
+from datetime import datetime
 
 
 class FDivergenceType(Enum):
@@ -16,7 +17,8 @@ class FDivergenceType(Enum):
 
 
 class TrainArgPath(Enum):
-    OUTPUT_DIR = '/data1/llm/houzm/98-model/01-qwen-vl-chat/qwen/qwen-dpo/output-model/'
+    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
+    OUTPUT_DIR = f'/public/whr/hzm/model/qwen2-dpo/{timestamp}'
 
 
 @dataclass
@@ -26,13 +28,13 @@ class TrainArgument(DPOConfig):
     """
     output_dir: str = field(default=TrainArgPath.OUTPUT_DIR.value,
                             metadata={"help": "模型训练完成后的保存路径"})
-    num_train_epochs: int = field(default=10, metadata={"help": "训练轮次"})
+    num_train_epochs: int = field(default=5, metadata={"help": "训练轮次"})
     per_device_train_batch_size: int = field(default=1, metadata={"help": "训练的batch size"})
     gradient_checkpointing: bool = field(default=True, metadata={"help": "是否使用梯度累计"})
     gradient_accumulation_steps: int = field(default=1, metadata={"help": "梯度累计的步长"})
     learning_rate: float = field(default=1e-4, metadata={"help": "学习率"})
-    logging_steps: int = field(default=100, metadata={"help": "打印的步长"})
-    save_steps: int = field(default=200, metadata={"help": "多少步长保存一次"})
+    logging_steps: int = field(default=10, metadata={"help": "打印的步长"})
+    save_steps: int = field(default=2000, metadata={"help": "多少步长保存一次"})
     evaluation_strategy: Union[IntervalStrategy, str] = field(default="no", metadata={"help": "The evaluation "
                                                                                               "strategy to use."}, )
     save_strategy: Union[IntervalStrategy, str] = field(default="epoch", metadata={"help": "The checkpoint save "
@@ -41,7 +43,7 @@ class TrainArgument(DPOConfig):
                                                                          "amount of checkpoints. Deletes the older "
                                                                          "checkpoints in"})
     # load_best_model_at_end: bool = field(default=True, metadata={"help": "是否保存效果最好的模型"})
-    lr_scheduler_type: Union[SchedulerType, str] = field(default="linear",  # cosine, linear, constant_with_warmup
+    lr_scheduler_type: Union[SchedulerType, str] = field(default="constant_with_warmup",  # cosine, linear, constant_with_warmup
                                                          metadata={"help": "The scheduler type to use."})
     warmup_steps: int = field(default=10, metadata={"help": "Linear warmup over warmup_steps."})
     optim: Union[OptimizerNames, str] = field(default='paged_adamw_32bit', metadata={"help": "The optimizer to use."})  # adamw_torch

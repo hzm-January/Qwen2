@@ -24,9 +24,10 @@ class TrainMode(Enum):
 class TrainArgPath(Enum):
     SFT_LORA_QLORA_BASE = 'train_args/sft/lora_qlora/base.py'
     DPO_LORA_QLORA_BASE = 'train_args/dpo/dpo_config.py'
-    TRAIN_DATASET_PATH = '/data1/llm/houzm/99-code/01-Qwen-VL/ai_doctor/data/data_finetune/dpo/dpo_finetune_dataset.jsonl'
+    TRAIN_DATASET_PATH = '/public/whr/hzm/code/qwen2/ai_docter/source/dpo_fs_train_data.jsonl'
     # TRAIN_DATASET_PATH = '/data1/llm/houzm/99-code/03-qwen-dpo/data/dpo_multi_data.jsonl'
-    MODLE_PATH = '/data1/llm/houzm/98-model/01-qwen-vl-chat/qwen/qwen-dpo/input-model/v2'
+    dir_id = '20240811-230536' # '20240811-134819'
+    MODLE_PATH = f'/public/whr/hzm/model/qwen2-sft/{dir_id}'
     TASK_TYPE = 'dpo_multi'
 
 
@@ -41,8 +42,8 @@ class CommonArgs:
 
     train_args_path: TrainArgPath = field(default=TrainArgPath.DPO_LORA_QLORA_BASE.value,
                                           metadata={"help": "当前模式的训练参数,分为sft和dpo参数"})
-    max_len: int = field(default=4096, metadata={"help": "最大输入长度,dpo时该参数在dpo_config中设置"})
-    max_prompt_length: int = field(default=4096, metadata={
+    max_len: int = field(default=8192, metadata={"help": "最大输入长度,dpo时该参数在dpo_config中设置"})
+    max_prompt_length: int = field(default=8192, metadata={
         "help": "dpo时，prompt的最大长度，适用于dpo_single,dpo_multi时该参数在dpo_config中设置"})
     train_data_path: Optional[str] = field(default=TrainArgPath.TRAIN_DATASET_PATH.value, metadata={"help": "训练集路径"})
     model_name_or_path: str = field(default=TrainArgPath.MODLE_PATH.value, metadata={"help": "下载的所需模型路径"})

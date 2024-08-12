@@ -18,6 +18,10 @@ file_name:
   dpo_train_data: 'dpo_train_data.jsonl'
   test_data: 'test_data.jsonl'
   test_label: 'test_label.jsonl'
+  sft_fs_train_data: 'sft_fs_train_data.jsonl'
+  dpo_fs_train_data: 'dpo_fs_train_data.jsonl'
+  test_fs_data: 'test_fs_data.jsonl'
+  test_fs_label: 'test_fs_label.jsonl'
 prompt:
   finetune_diagnose_prefix: "The patient's diagnosis details indicate the following: "
   finetune_diagnose_require: "Does the diagnosis details of this patient show a keratoconus disease? yes or no?"
