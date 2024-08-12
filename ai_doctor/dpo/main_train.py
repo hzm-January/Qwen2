@@ -14,6 +14,7 @@ from utils.args import CommonArgs
 import importlib
 from datasets import load_dataset
 from trl import DPOTrainer
+import argparse
 
 
 # os.environ['CUDA_VISIBLE_DEVICES'] = '0,2,3,4'
@@ -33,13 +34,21 @@ def load_config(train_args_path):
     return train_argument
 
 
-def initial_args():
+def initial_args(command_args):
     # parser = HfArgumentParser((CommonArgs, TrainArgument))
     # reward_args, train_args = parser.parse_args_into_dataclasses()
     parser = HfArgumentParser((CommonArgs,))
     args = parser.parse_args_into_dataclasses()[0]
+
+    dir_id = command_args.dir_id
+    args.train_data_path = os.path.join(args.train_data_path, dir_id, 'dpo_train_data.jsonl')
+    args.model_name_or_path = os.path.join(args.model_name_or_path, dir_id)
+    args.train_args_path = '/public/whr/hzm/code/qwen2/ai_doctor/dpo/train_args/dpo/dpo_config.py'
+
     # 根据CommonArgs中的config_option动态加载配置
     train_args = load_config(args.train_args_path)
+
+
 
     if not os.path.exists(train_args.output_dir):
         os.makedirs(train_args.output_dir)
@@ -239,8 +248,8 @@ def create_trainer(args, train_args):
     return trainer
 
 
-def main():
-    args, train_args = initial_args()
+def main(command_args):
+    args, train_args = initial_args(command_args)
     # 加载trainer
     trainer = create_trainer(args, train_args)
     # 开始训练
@@ -257,4 +266,11 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Test  checkpoint.")
+
+    parser.add_argument(
+        "-o", "--dir-id", type=str, default="dpo-dir-id"
+    )
+
+    args = parser.parse_args()
+    main(args)

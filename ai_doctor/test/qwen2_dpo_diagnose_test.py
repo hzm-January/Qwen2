@@ -10,11 +10,11 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 def load_config():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--dir-id", type=str, default="20240725-104805")
+    parser.add_argument("--dir-id", type=str, default="20240725-104805")
     parser.add_argument('--ds_config', type=str,
-                        default='/public/whr/hzm/code/qwen2/ai_docter/config/dataset_config.yaml')
+                        default='/public/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--ft_config', type=str,
-                        default='/public/whr/hzm/code/qwen2/ai_docter/config/finetune_config.yaml')
+                        default='/public/whr/hzm/code/qwen2/ai_doctor/config/finetune_config.yaml')
     args = parser.parse_args()
 
     if not os.path.exists(args.ds_config):
@@ -48,13 +48,19 @@ def main():
     args = load_config()
     # dir_id = '20240725-104805'
     # dir_id = '20240811-131954'
-    sft_dir_id = '20240811-134819'
-    dpo_dir_id = '20240811-223514' # '20240811-214158'  # '20240811-210134'  # '20240811-201031'
+
+    # sft_dir_id = '20240811-134819'  #
+    # dpo_dir_id = '20240811-223514'  #  '20240811-214158'  # '20240811-210134'  # '20240811-201031'
+    # diagnose_test_dataset_json = os.path.join(args.path['dataset_dir'], args.file_name['test_data'])
+    # diagnose_test_label_json = os.path.join(args.path['dataset_dir'], args.file_name['test_label'])
+
+    # sft_dir_id = '20240812-105343'  # '20240811-230536'  # '20240811-134819'
+    # dpo_dir_id = '20240812-135248'  # '20240812-083949'  # '20240811-223514' # '20240811-214158'  # '20240811-210134'  # '20240811-201031'
 
     diagnose_test_dataset_json = os.path.join(args.path['dataset_dir'], args.file_name['test_fs_data'])
     diagnose_test_label_json = os.path.join(args.path['dataset_dir'], args.file_name['test_fs_label'])
-    base_model_dir = os.path.join(args.ft_path['sft_model_dir'], sft_dir_id)
-    dpo_model_dir = os.path.join(args.ft_path['dpo_model_dir'], dpo_dir_id)
+    base_model_dir = os.path.join(args.ft_path['sft_model_dir'], args.dir_id)
+    dpo_model_dir = os.path.join(args.ft_path['dpo_model_dir'], args.dir_id)
 
     diagnose_test_dataset_dir = os.path.join(dpo_model_dir, 'predict_result')
 

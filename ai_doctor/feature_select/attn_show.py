@@ -10,9 +10,9 @@ from peft import AutoPeftModelForCausalLM, PeftModel
 from loguru import logger
 from transformers.generation import GenerationConfig
 
-column_name_json = '/public/whr/hzm/code/qwen2/ai_docter/source/patient_infos_column_name_1_2.json'
+column_name_json = '/public/whr/hzm/code/qwen2/ai_doctor/source/patient_infos_column_name_1_2.json'
 
-generation_config_dir = '/public/whr/hzm/code/qwen2/ai_docter/feature_select/'
+generation_config_dir = '/public/whr/hzm/code/qwen2/ai_doctor/feature_select/'
 
 cuda = "cuda:1"
 
@@ -21,9 +21,9 @@ def load_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--dir-id", type=str, default="20240725-104805")
     parser.add_argument('--ds_config', type=str,
-                        default='/public/whr/hzm/code/qwen2/ai_docter/config/dataset_config.yaml')
+                        default='/public/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--ft_config', type=str,
-                        default='/public/whr/hzm/code/qwen2/ai_docter/config/finetune_config.yaml')
+                        default='/public/whr/hzm/code/qwen2/ai_doctor/config/finetune_config.yaml')
     args = parser.parse_args()
 
     if not os.path.exists(args.ds_config):

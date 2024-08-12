@@ -15,7 +15,7 @@ from note_template_config import *
 def load_config():
     parser = argparse.ArgumentParser()
     parser.add_argument('--class', type=str, default='Single')
-    parser.add_argument('--config', type=str, default='/public/whr/hzm/code/qwen2/ai_docter/config/dataset_config.yaml')
+    parser.add_argument('--config', type=str, default='/public/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--output_dir', type=str, default='Single')
     args = parser.parse_args()
 
@@ -139,10 +139,37 @@ def load_dataset(args):
 def preprocess(args, df):
     df = preprocess_yd(args, df)
     df = preprocess_format(args, df)
-    df = preprocess_abbr(args, df)
     df = preprocess_finetune(args, df)
+    df = preprocess_abbr(args, df)
+    df = preprocess_feature_select(args, df)
     return df
 
+
+def preprocess_feature_select(args, df):
+    df = df[[
+        'Steepest point of the front surface keratometry displacement in the y-axis',
+        'Dist. Apex-Thin.Loc. [mm](Dist. C-T)',
+        'K1 B (D)',
+        'K1 F (D)',
+        'Root-mean-square of total aberrations of whole cornea',
+        'BAD Dy',
+        'Mean eccentricity in the central 30 degrees by Fourier analysis',
+        'Steepest point of the front surface keratometry displacement in the x-axis',
+        'Index of height asymmetry',
+        'Maximum keratometry of the front surface',
+        'BAD Dt',
+        'Pachy Apex(CCT)',
+        'Ambrósio’s relational thickness in the horizontal profile',
+        'BAD Da',
+        'index of vertical asymmetry',
+        'RMS (CF)',
+        'BAD Df',
+        'Corneal volume in a 3mm diameter zone around the corneal apex',
+        'K2 F (D)',
+        'Pachy Prog Index Max.',
+        'label'
+    ]]
+    return df
 
 def preprocess_yd(args, df):
     # rename label column as label_i in each sheet
@@ -176,6 +203,7 @@ def preprocess_yd(args, df):
         df['label'] = df[handle_columns].apply(lambda row: mode(row, nan_policy='omit').mode[0], axis=1)
     df.drop(columns=handle_columns, inplace=True)
 
+
     return df
 
 
@@ -202,6 +230,12 @@ def preprocess_abbr(args, df):
 
 def preprocess_finetune(args, df):
     # df = df[[c for c in df if df[c].nunique() > 1]]  # remove constant
+    print(rule_yiduo)
+    print(df.columns.values.tolist())
+    # substitute digit to word
+    for k, v in rule_yiduo.items():
+        if (k not in df.columns.values.tolist()) or (not v): continue
+        df[k] = pd.cut(df[k], bins=v["bins"], labels=v["labels"], right=False, include_lowest=False)
     return df
 
 
@@ -218,19 +252,19 @@ def main():
     # 3 template
     sft_train_queries, dpo_train_queries, test_queries, test_labels = note_template(args, dataset)
 
-    with open(os.path.join(args.path['dataset_dir'], args.file_name['sft_train_data']), 'w') as f:
+    with open(os.path.join(args.path['dataset_dir'], args.file_name['sft_fs_train_data']), 'w') as f:
         for row in sft_train_queries:
             f.write(json.dumps(row, ensure_ascii=False) + '\n')
         # json.dump(sft_train_queries, f, ensure_ascii=False) # json
-    with open(os.path.join(args.path['dataset_dir'], args.file_name['dpo_train_data']), 'w') as f:
+    with open(os.path.join(args.path['dataset_dir'], args.file_name['dpo_fs_train_data']), 'w') as f:
         for row in dpo_train_queries:
             f.write(json.dumps(row, ensure_ascii=False) + '\n')
         # json.dump(dpo_train_queries, f, ensure_ascii=False)
-    with open(os.path.join(args.path['dataset_dir'], args.file_name['test_data']), 'w') as f:
+    with open(os.path.join(args.path['dataset_dir'], args.file_name['test_fs_data']), 'w') as f:
         for row in test_queries:
             f.write(json.dumps(row, ensure_ascii=False) + '\n')
         # json.dump(test_queries, f, ensure_ascii=False)
-    with open(os.path.join(args.path['dataset_dir'], args.file_name['test_label']), 'w') as f:
+    with open(os.path.join(args.path['dataset_dir'], args.file_name['test_fs_label']), 'w') as f:
         for row in test_labels:
             f.write(json.dumps(row, ensure_ascii=False) + '\n')
         # json.dump(test_labels, f, ensure_ascii=False)

@@ -9,11 +9,11 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 
 def load_config():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--dir-id", type=str, default="20240725-104805")
+    parser.add_argument("--dir-id", type=str, default="dir-id")
     parser.add_argument('--ds_config', type=str,
-                        default='/public/whr/hzm/code/qwen2/ai_docter/config/dataset_config.yaml')
+                        default='/public/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--ft_config', type=str,
-                        default='/public/whr/hzm/code/qwen2/ai_docter/config/finetune_config.yaml')
+                        default='/public/whr/hzm/code/qwen2/ai_doctor/config/finetune_config.yaml')
     args = parser.parse_args()
 
     if not os.path.exists(args.ds_config):
@@ -47,11 +47,14 @@ def main():
     args = load_config()
     # dir_id = '20240725-104805'
     # dir_id = '20240811-131954'
-    dir_id = '20240811-134819' # '20240811-230536'
+    # dir_id = '20240811-134819' # '20240811-230536'
+    # dir_id = '20240812-105343' # word + all feature
 
     diagnose_test_dataset_json = os.path.join(args.path['dataset_dir'], args.file_name['test_data'])
     diagnose_test_label_json = os.path.join(args.path['dataset_dir'], args.file_name['test_label'])
 
+    # dir_id = '20240811-230536'  #
+    #
     # diagnose_test_dataset_json = os.path.join(args.path['dataset_dir'], args.file_name['test_fs_data'])
     # diagnose_test_label_json = os.path.join(args.path['dataset_dir'], args.file_name['test_fs_label'])
     model_dir = os.path.join(args.ft_path['sft_model_dir'], dir_id)

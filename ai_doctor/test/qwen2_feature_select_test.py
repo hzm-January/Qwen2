@@ -12,9 +12,9 @@ def load_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("-o", "--dir-id", type=str, default="20240725-104805")
     parser.add_argument('--ds_config', type=str,
-                        default='/public/whr/hzm/code/qwen2/ai_docter/config/dataset_config.yaml')
+                        default='/public/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--ft_config', type=str,
-                        default='/public/whr/hzm/code/qwen2/ai_docter/config/finetune_config.yaml')
+                        default='/public/whr/hzm/code/qwen2/ai_doctor/config/finetune_config.yaml')
     args = parser.parse_args()
 
     if not os.path.exists(args.ds_config):

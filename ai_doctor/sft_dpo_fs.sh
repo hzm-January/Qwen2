@@ -1,9 +1,22 @@
 #!/bin/bash
 export CUDA_DEVICE_MAX_CONNECTIONS=1
+
+#CUDA_IDS=0,1,2,3,4,5,6,7
+
+#export CUDA_VISIBLE_DEVICES=$CUDA_IDS
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 DIR_ID=$(date '+%Y%m%d-%H%M%S')
 OUTPUT_DIR="/public/whr/hzm/model/qwen2-sft/$DIR_ID"
+
+MODEL="/public/whr/hzm/model/qwen2-base/qwen2/qwen2-7b-instruct"
+# Set the path if you do not want to load from huggingface directly
+# ATTENTION: specify the path to your training data, which should be a json file consisting of a list of conversations.
+# See https://qwen.readthedocs.io/en/latest/training/SFT/example.html#data-preparation for more information.
+DATA="$OUTPUT_DIR/source/sft_fs_train_data.jsonl"
+DS_CONFIG_PATH="/public/whr/hzm/code/qwen2/examples/sft/ds_config_zero3.json"
+USE_LORA=False
+Q_LORA=False
 
 # Guide:
 # This script supports distributed training on multi-gpu workers (as well as single-worker training).
@@ -26,54 +39,6 @@ MASTER_ADDR=${MASTER_ADDR:-localhost}
 # The port for communication
 MASTER_PORT=${MASTER_PORT:-6001}
 
-MODEL="Qwen/Qwen2-7B" # Set the path if you do not want to load from huggingface directly
-# ATTENTION: specify the path to your training data, which should be a json file consisting of a list of conversations.
-# See https://qwen.readthedocs.io/en/latest/training/SFT/example.html#data-preparation for more information.
-DATA="example_data.jsonl"
-DS_CONFIG_PATH="ds_config_zero3.json"
-USE_LORA=False
-Q_LORA=False
-
-function usage() {
-    echo '
-Usage: bash finetune.sh [-m MODEL_PATH] [-d DATA_PATH] [--deepspeed DS_CONFIG_PATH] [--use_lora USE_LORA] [--q_lora Q_LORA]
-'
-}
-
-while [[ "$1" != "" ]]; do
-    case $1 in
-        -m | --model )
-            shift
-            MODEL=$1
-            ;;
-        -d | --data )
-            shift
-            DATA=$1
-            ;;
-        --deepspeed )
-            shift
-            DS_CONFIG_PATH=$1
-            ;;
-        --use_lora  )
-            shift
-            USE_LORA=$1
-            ;;
-        --q_lora    )
-            shift
-            Q_LORA=$1
-            ;;
-        -h | --help )
-            usage
-            exit 0
-            ;;
-        * )
-            echo "Unknown argument ${1}"
-            exit 1
-            ;;
-    esac
-    shift
-done
-
 DISTRIBUTED_ARGS="
     --nproc_per_node $GPUS_PER_NODE \
     --nnodes $NNODES \
@@ -82,12 +47,12 @@ DISTRIBUTED_ARGS="
     --master_port $MASTER_PORT
 "
 
-torchrun $DISTRIBUTED_ARGS finetune.py \
+run_sh="/public/whr/anaconda3/envs/hzm-qwen2-01/bin/torchrun $DISTRIBUTED_ARGS /public/whr/hzm/code/qwen2/examples/sft/finetune.py \
     --model_name_or_path $MODEL \
     --data_path $DATA \
     --bf16 True \
     --output_dir $OUTPUT_DIR \
-    --num_train_epochs 5 \
+    --num_train_epochs 1 \
     --per_device_train_batch_size 1 \
     --per_device_eval_batch_size 1 \
     --gradient_accumulation_steps 1 \
@@ -108,3 +73,22 @@ torchrun $DISTRIBUTED_ARGS finetune.py \
     --q_lora ${Q_LORA} \
     --gradient_checkpointing \
     --deepspeed ${DS_CONFIG_PATH}
+    "
+
+mkdir -p $OUTPUT_DIR
+
+echo $OUTPUT_DIR
+
+# 1 generate train and test dataset with selected features
+/public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 /public/whr/hzm/code/qwen2/ai_doctor/data/dataset_process_feature_select.py 2>&1 | tee "$OUTPUT_DIR/train_model.log"
+# 2 copy dataset from ai_doctor to output_dir/source/
+mkdir -p $OUTPUT_DIR/source
+cp -r /public/whr/hzm/code/qwen2/ai_doctor/source/*.jsonl $OUTPUT_DIR/source
+# 3 sft train
+eval $run_sh 2>&1 | tee "$OUTPUT_DIR/train_model.log"
+## 4 sft test
+/public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 /public/whr/hzm/code/qwen2/ai_doctor/test/qwen2_sft_diagnose_test.py --dir-id $DIR_ID  2>&1 | tee "$OUTPUT_DIR/train_model.log"
+## 5 dpo train
+deepspeed --include localhost:$CUDA_IDS main_train.py --dir-id $DIR_ID
+# 6 dpo test
+/public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 /public/whr/hzm/code/qwen2/ai_doctor/test/qwen2_dpo_diagnose_test.py --dir-id $DIR_ID
