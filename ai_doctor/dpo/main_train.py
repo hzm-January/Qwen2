@@ -34,27 +34,34 @@ def load_config(train_args_path):
     return train_argument
 
 
-def initial_args(command_args):
+def initial_args():
     # parser = HfArgumentParser((CommonArgs, TrainArgument))
     # reward_args, train_args = parser.parse_args_into_dataclasses()
-    parser = HfArgumentParser((CommonArgs,))
-    args = parser.parse_args_into_dataclasses()[0]
 
-    dir_id = command_args.dir_id
-    args.train_data_path = os.path.join(args.train_data_path, dir_id, 'dpo_train_data.jsonl')
-    args.model_name_or_path = os.path.join(args.model_name_or_path, dir_id)
-    args.train_args_path = '/public/whr/hzm/code/qwen2/ai_doctor/dpo/train_args/dpo/dpo_config.py'
+    parser = HfArgumentParser((CommonArgs,))
+    # parser.add_argument('--dir-id', type=str, default='dpo_train_dir_id')
+    # parser.add_argument('--selected', type=int, default=0)
+    # commond_args = parser.parse_args()
+    args = parser.parse_args_into_dataclasses()[0]
+    # logger.info(f"Common arguments: {args}")
+
+    # dir_id = command_args.dir_id
+
+    args.model_name_or_path = os.path.join(args.model_name_or_path, args.dir_id)
+    # args.train_args_path = '/public/whr/hzm/code/qwen2/ai_doctor/dpo/train_args/dpo/dpo_config.py'
+    if args.selected:
+        args.train_data_path = os.path.join(args.train_data_path, args.dir_id, 'source', 'dpo_fs_train_data.jsonl')
+    else:
+        args.train_data_path = os.path.join(args.train_data_path, args.dir_id, 'source', 'dpo_train_data.jsonl')
 
     # 根据CommonArgs中的config_option动态加载配置
     train_args = load_config(args.train_args_path)
-
-
-
+    train_args.output_dir = os.path.join(train_args.output_dir, args.dir_id)
     if not os.path.exists(train_args.output_dir):
         os.makedirs(train_args.output_dir)
     logger.add(join(train_args.output_dir, 'train.log'))
-    logger.info("train_args:{}".format(train_args))
-    logger.info("common_args:{}".format(train_args))
+    # logger.info("train_args:{}".format(train_args))
+    # logger.info("common_args:{}".format(train_args))
     set_seed(train_args.seed)
 
     assert sum([train_args.fp16, train_args.bf16]) == 1, "only one of fp16 and bf16 can be True"
@@ -248,8 +255,8 @@ def create_trainer(args, train_args):
     return trainer
 
 
-def main(command_args):
-    args, train_args = initial_args(command_args)
+def main():
+    args, train_args = initial_args()
     # 加载trainer
     trainer = create_trainer(args, train_args)
     # 开始训练
@@ -266,11 +273,4 @@ def main(command_args):
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Test  checkpoint.")
-
-    parser.add_argument(
-        "-o", "--dir-id", type=str, default="dpo-dir-id"
-    )
-
-    args = parser.parse_args()
-    main(args)
+    main()

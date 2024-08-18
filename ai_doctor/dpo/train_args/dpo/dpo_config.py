@@ -1,13 +1,9 @@
-"""
-一般来说这里的参数是各个模型都通用的
-"""
 from dataclasses import dataclass, field
 from enum import Enum
 from typing import Optional, Union, List, Literal, Dict
-from transformers import TrainingArguments, SchedulerType, IntervalStrategy
+from transformers import SchedulerType, IntervalStrategy
 from transformers.training_args import OptimizerNames
 from trl import DPOConfig
-from datetime import datetime
 
 
 class FDivergenceType(Enum):
@@ -16,37 +12,30 @@ class FDivergenceType(Enum):
     ALPHA_DIVERGENCE = "alpha_divergence"
 
 
-class TrainArgPath(Enum):
-    timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    OUTPUT_DIR = f'/public/whr/hzm/model/qwen2-dpo/{timestamp}'
-
-
 @dataclass
 class TrainArgument(DPOConfig):
     """
     训练参数, 直接在这里修改default即可
     """
-    output_dir: str = field(default=TrainArgPath.OUTPUT_DIR.value,
-                            metadata={"help": "模型训练完成后的保存路径"})
+    output_dir: str = field(default='/public/whr/hzm/model/qwen2-dpo', metadata={"help": "模型训练完成后的保存路径"})
     num_train_epochs: int = field(default=5, metadata={"help": "训练轮次"})
     per_device_train_batch_size: int = field(default=1, metadata={"help": "训练的batch size"})
     gradient_checkpointing: bool = field(default=True, metadata={"help": "是否使用梯度累计"})
     gradient_accumulation_steps: int = field(default=1, metadata={"help": "梯度累计的步长"})
     learning_rate: float = field(default=1e-4, metadata={"help": "学习率"})
     logging_steps: int = field(default=10, metadata={"help": "打印的步长"})
-    save_steps: int = field(default=2000, metadata={"help": "多少步长保存一次"})
+    save_steps: int = field(default=5000, metadata={"help": "多少步长保存一次"})
     evaluation_strategy: Union[IntervalStrategy, str] = field(default="no", metadata={"help": "The evaluation "
                                                                                               "strategy to use."}, )
     save_strategy: Union[IntervalStrategy, str] = field(default="epoch", metadata={"help": "The checkpoint save "
                                                                                            "strategy to use."}, )
-    save_total_limit: Optional[int] = field(default=5, metadata={"help": "If a value is passed, will limit the total "
+    save_total_limit: Optional[int] = field(default=2, metadata={"help": "If a value is passed, will limit the total "
                                                                          "amount of checkpoints. Deletes the older "
                                                                          "checkpoints in"})
-    # load_best_model_at_end: bool = field(default=True, metadata={"help": "是否保存效果最好的模型"})
-    lr_scheduler_type: Union[SchedulerType, str] = field(default="constant_with_warmup",  # cosine, linear, constant_with_warmup
+    lr_scheduler_type: Union[SchedulerType, str] = field(default="constant_with_warmup",
                                                          metadata={"help": "The scheduler type to use."})
     warmup_steps: int = field(default=10, metadata={"help": "Linear warmup over warmup_steps."})
-    optim: Union[OptimizerNames, str] = field(default='paged_adamw_32bit', metadata={"help": "The optimizer to use."})  # adamw_torch
+    optim: Union[OptimizerNames, str] = field(default='paged_adamw_32bit', metadata={"help": "The optimizer to use."})
     seed: int = field(default=42, metadata={"help": "Random seed that will be set at the beginning of training."})
     report_to: Optional[List[str]] = field(default='tensorboard', metadata={
         "help": "The list of integrations to report the results and logs to."})
@@ -62,7 +51,7 @@ class TrainArgument(DPOConfig):
     fp16: bool = field(default=False, metadata={"help": "Whether to use fp16 (mixed) precision instead of 32-bit"})
 
     # Deepspeed训练相关参数，不使用时设置为default=None
-    deepspeed: Optional[str] = field(default='./train_args/deepspeed_config/ds_config_zero2.json',
+    deepspeed: Optional[str] = field(default='/public/whr/hzm/code/qwen2/ai_doctor/dpo/train_args/deepspeed_config/ds_config_zero2.json',
                                      metadata={"help": "启用Deepspeed时需要的config文件"})
     # ---------------------------------------------------------------------------------------------------------------------
     # 上面参数是常规TrainingArguments设置，下面参数则是dpo配置参数。下面为DPOConfig默认配置。
@@ -74,8 +63,8 @@ class TrainArgument(DPOConfig):
     label_pad_token_id: int = -100
     padding_value: int = 0
     truncation_mode: str = "keep_end"
-    max_length: Optional[int] = 4096
-    max_prompt_length: Optional[int] = 4096
+    max_length: Optional[int] = 8192
+    max_prompt_length: Optional[int] = 8192
     max_target_length: Optional[int] = None
     is_encoder_decoder: Optional[bool] = None
     disable_dropout: bool = True
@@ -94,5 +83,3 @@ class TrainArgument(DPOConfig):
     ref_model_mixup_alpha: float = 0.9
     ref_model_sync_steps: int = 64
     rpo_alpha: Optional[float] = None
-
-

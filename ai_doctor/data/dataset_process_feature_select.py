@@ -146,30 +146,53 @@ def preprocess(args, df):
 
 
 def preprocess_feature_select(args, df):
+    # df = df[[
+    #     'Steepest point of the front surface keratometry displacement in the y-axis',
+    #     'Dist. Apex-Thin.Loc. [mm](Dist. C-T)',
+    #     'K1 B (D)',
+    #     'K1 F (D)',
+    #     'Root-mean-square of total aberrations of whole cornea',
+    #     'BAD Dy',
+    #     'Mean eccentricity in the central 30 degrees by Fourier analysis',
+    #     'Steepest point of the front surface keratometry displacement in the x-axis',
+    #     'Index of height asymmetry',
+    #     'Maximum keratometry of the front surface',
+    #     'BAD Dt',
+    #     'Pachy Apex(CCT)',
+    #     'Ambrósio’s relational thickness in the horizontal profile',
+    #     'BAD Da',
+    #     'index of vertical asymmetry',
+    #     'RMS (CF)',
+    #     'BAD Df',
+    #     'Corneal volume in a 3mm diameter zone around the corneal apex',
+    #     'K2 F (D)',
+    #     'Pachy Prog Index Max.',
+    #     'label'
+    # ]]
     df = df[[
-        'Steepest point of the front surface keratometry displacement in the y-axis',
-        'Dist. Apex-Thin.Loc. [mm](Dist. C-T)',
-        'K1 B (D)',
-        'K1 F (D)',
-        'Root-mean-square of total aberrations of whole cornea',
-        'BAD Dy',
-        'Mean eccentricity in the central 30 degrees by Fourier analysis',
-        'Steepest point of the front surface keratometry displacement in the x-axis',
-        'Index of height asymmetry',
-        'Maximum keratometry of the front surface',
-        'BAD Dt',
-        'Pachy Apex(CCT)',
-        'Ambrósio’s relational thickness in the horizontal profile',
-        'BAD Da',
-        'index of vertical asymmetry',
-        'RMS (CF)',
-        'BAD Df',
-        'Corneal volume in a 3mm diameter zone around the corneal apex',
-        'K2 F (D)',
-        'Pachy Prog Index Max.',
-        'label'
+        "性别",
+        "幼年时家庭经济状况",
+        "BMI",
+        "睡觉时是否打鼾或患有睡眠呼吸暂停综合征？",
+        "年龄",
+        "圆锥角膜家族史",
+        "文化程度",
+        "Dist. Apex-Thin.Loc. [mm](Dist. C-T)",
+        "Ambrósio’s relational thickness in the horizontal profile",
+        "Pachy Prog Index Min.",
+        "每天使用电子屏幕（手机、电脑等）的总时间（小时）",
+        "揉眼睛的频率",
+        "Steepest point of the front surface keratometry displacement in the x-axis",
+        "Pachy Apex(CCT)",
+        "每天在黑暗环境中使用电子屏幕的时间（小时）",
+        "是否患有过敏性疾病？",
+        "感到工作/学习压力很大？",
+        "Mean eccentricity in the central 30 degrees by Fourier analysis",
+        "睡觉时是否偏好把手或手臂垫放在眼睛上？",
+        "Root-mean-square of total aberrations of whole cornea"
     ]]
     return df
+
 
 def preprocess_yd(args, df):
     # rename label column as label_i in each sheet
@@ -202,7 +225,6 @@ def preprocess_yd(args, df):
     else:  # multi_class
         df['label'] = df[handle_columns].apply(lambda row: mode(row, nan_policy='omit').mode[0], axis=1)
     df.drop(columns=handle_columns, inplace=True)
-
 
     return df
 

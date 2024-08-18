@@ -6,10 +6,12 @@ from pathlib import Path
 from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
+cuda='cuda:0'
 
 def load_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dir-id", type=str, default="dir-id")
+    parser.add_argument("--selected", type=bool, default=False)
     parser.add_argument('--ds_config', type=str,
                         default='/public/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--ft_config', type=str,
@@ -50,14 +52,18 @@ def main():
     # dir_id = '20240811-134819' # '20240811-230536'
     # dir_id = '20240812-105343' # word + all feature
 
-    diagnose_test_dataset_json = os.path.join(args.path['dataset_dir'], args.file_name['test_data'])
-    diagnose_test_label_json = os.path.join(args.path['dataset_dir'], args.file_name['test_label'])
+    if args.selected:
+        diagnose_test_dataset_json = os.path.join(args.path['dataset_dir'], args.file_name['test_fs_data'])
+        diagnose_test_label_json = os.path.join(args.path['dataset_dir'], args.file_name['test_fs_label'])
+    else:
+        diagnose_test_dataset_json = os.path.join(args.path['dataset_dir'], args.file_name['test_data'])
+        diagnose_test_label_json = os.path.join(args.path['dataset_dir'], args.file_name['test_label'])
 
     # dir_id = '20240811-230536'  #
     #
     # diagnose_test_dataset_json = os.path.join(args.path['dataset_dir'], args.file_name['test_fs_data'])
     # diagnose_test_label_json = os.path.join(args.path['dataset_dir'], args.file_name['test_fs_label'])
-    model_dir = os.path.join(args.ft_path['sft_model_dir'], dir_id)
+    model_dir = os.path.join(args.ft_path['sft_model_dir'], args.dir_id)
     diagnose_test_dataset_dir = os.path.join(model_dir, 'predict_result')
 
     diagnose_predict_result_json = os.path.join(diagnose_test_dataset_dir, 'diagnose_predict_result.json')
@@ -68,7 +74,7 @@ def main():
     model = AutoModelForCausalLM.from_pretrained(
         model_dir,  # path to the output directory
         torch_dtype="auto",
-        device_map="cuda:7",
+        device_map=cuda,
         trust_remote_code=True
     ).eval()
 
@@ -93,18 +99,18 @@ def main():
     predicts = []
     for i in range(patient_cnt):
         # print(diagnose_test_dataset[i])
-        content = diagnose_test_dataset[i]+'\n'+args.prompt['finetune_diagnose_require']
+        content = diagnose_test_dataset[i] + '\n' + args.prompt['finetune_diagnose_require']
         messages = [
-                    {"role": "system", "content": "You are an ophthalmology specialist."},
-                    {"role": "user", "content": content}
-                ]
-
+            {"role": "system", "content": "You are an ophthalmology specialist."},
+            {"role": "user", "content": content}
+        ]
+        if i == 0: logger.info(f'=============== sft test message: {messages}')
         text = tokenizer.apply_chat_template(
             messages,
             tokenize=False,
             add_generation_prompt=True
         )
-        model_inputs = tokenizer([text], return_tensors="pt").to('cuda:7')
+        model_inputs = tokenizer([text], return_tensors="pt").to(cuda)
 
         generated_ids = model.generate(
             **model_inputs,
@@ -116,8 +122,7 @@ def main():
 
         response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
 
-        print('----------------')
-        if i <5: logger.info(response)
+        if i < 5: logger.info(response)
         # new_query = diagnose_test_dataset[i]+"请根据检测结果诊断该人员是否患有圆锥角膜病。"
         # response, history = model.chat(tokenizer, query=new_query, history=history)
         # label = F_T if label_info[i] else F_F

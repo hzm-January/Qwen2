@@ -26,7 +26,7 @@ class TrainArgPath(Enum):
     DPO_LORA_QLORA_BASE = 'train_args/dpo/dpo_config.py'
     # TRAIN_DATASET_PATH = '/public/whr/hzm/code/qwen2/ai_doctor/source/dpo_fs_train_data.jsonl'
     # TRAIN_DATASET_PATH = '/public/whr/hzm/code/qwen2/ai_doctor/source/dpo_train_data.jsonl'
-    TRAIN_DATASET_PATH = '/public/whr/hzm/code/qwen2/ai_doctor/source'
+    TRAIN_DATASET_PATH = '/public/whr/hzm/model/qwen2-dpo'
     # MODLE_PATH = f'/public/whr/hzm/model/qwen2-sft/{dir_id}'
     MODLE_PATH = f'/public/whr/hzm/model/qwen2-sft'
     TASK_TYPE = 'dpo_multi'
@@ -64,3 +64,7 @@ class CommonArgs:
     lora_rank: Optional[int] = field(default=64, metadata={"help": "lora rank"})
     lora_alpha: Optional[int] = field(default=16, metadata={"help": "lora alpha"})
     lora_dropout: Optional[float] = field(default=0.05, metadata={"help": "lora dropout"})
+
+    # 自定义配置
+    dir_id: str = field(default='dpo_train_dir_id', metadata={"help": "dpo 训练数据路径"})
+    selected: int = field(default=0, metadata={"help": "是否使用筛选的特征"})

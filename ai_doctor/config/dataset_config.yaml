@@ -1,4 +1,4 @@
-table_ids: [ 1,2 ]
+table_ids: [ 0,1,2 ]
 label_ids: [ 0,1,2,3 ]
 shuffle: True
 seed: 42
@@ -22,6 +22,7 @@ file_name:
   dpo_fs_train_data: 'dpo_fs_train_data.jsonl'
   test_fs_data: 'test_fs_data.jsonl'
   test_fs_label: 'test_fs_label.jsonl'
+  top_keys_file: 'top_keys_all_all_seed42'
 prompt:
   finetune_diagnose_prefix: "The patient's diagnosis details indicate the following: "
   finetune_diagnose_require: "Does the diagnosis details of this patient show a keratoconus disease? yes or no?"
