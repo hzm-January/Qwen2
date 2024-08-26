@@ -9,7 +9,7 @@ test_dataset_ratio: 0.2
 tune_hyperparams: False
 dataset_name: 'yiduo'
 path:
-  dataset_dir: '/public/whr/hzm/code/qwen2/ai_doctor/source'
+  dataset_dir: '/public/njllm/hzm/code/qwen2_loss/ai_doctor/source'
   output_dir: 'data'
 file_name:
   org_data: 'patient_infos.xlsx'

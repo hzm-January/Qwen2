@@ -23,6 +23,7 @@ from transformers import (
     Trainer,
     deepspeed,
 )
+from sprompt.ex_transformers.strainer import STrainer
 from transformers.trainer_pt_utils import LabelSmoother
 
 IGNORE_TOKEN_ID = LabelSmoother.ignore_index
@@ -358,7 +359,7 @@ def train():
     )
 
     # Start trainer
-    trainer = Trainer(
+    trainer = STrainer(
         model=model, tokenizer=tokenizer, args=training_args, **data_module
     )
 

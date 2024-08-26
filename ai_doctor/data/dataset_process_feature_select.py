@@ -15,7 +15,7 @@ from note_template_config import *
 def load_config():
     parser = argparse.ArgumentParser()
     parser.add_argument('--class', type=str, default='Single')
-    parser.add_argument('--config', type=str, default='/public/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
+    parser.add_argument('--config', type=str, default='/public/njllm/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--output_dir', type=str, default='Single')
     args = parser.parse_args()
 
