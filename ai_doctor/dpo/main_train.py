@@ -17,7 +17,7 @@ from trl import DPOTrainer
 import argparse
 
 
-# os.environ['CUDA_VISIBLE_DEVICES'] = '0,2,3,4'
+# os.environ['CUDA_VISIBLE_DEVICES'] = '1,2,3,4,5,6,7'
 
 
 def load_config(train_args_path):
@@ -53,7 +53,7 @@ def initial_args():
         args.train_data_path = os.path.join(args.train_data_path, args.dir_id, 'source', 'dpo_fs_train_data.jsonl')
     else:
         args.train_data_path = os.path.join(args.train_data_path, args.dir_id, 'source', 'dpo_train_data.jsonl')
-
+    logger.info(f"======= dpo Train data path: {args.train_data_path}")
     # 根据CommonArgs中的config_option动态加载配置
     train_args = load_config(args.train_args_path)
     train_args.output_dir = os.path.join(train_args.output_dir, args.dir_id)

@@ -6,12 +6,12 @@ from pathlib import Path
 from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-cuda='cuda:0'
+cuda='cuda:1'
 
 def load_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dir-id", type=str, default="dir-id")
-    parser.add_argument("--selected", type=bool, default=False)
+    parser.add_argument("--selected", type=int, default=0)
     parser.add_argument('--ds_config', type=str,
                         default='/public/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--ft_config', type=str,

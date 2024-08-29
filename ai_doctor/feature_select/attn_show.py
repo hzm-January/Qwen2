@@ -61,18 +61,25 @@ def main():
 
     # calc_attn_one_model('20240813-193004')
 
-    dir_ids = ['20240813-193004', '20240813-175203', '20240813-151014', '20240813-143537', '20240812-230700']
+    dir_ids = ['20240827-200824', '20240827-205151', '20240827-212937', '20240827-221015', '20240828-123208']
+    # dir_ids = ['20240827-200824']
     attn_map = calc_attn_multi_model(args, dir_ids)
     sorted_attn_map_f = sorted(attn_map.items(), key=lambda item: item[1], reverse=True)
     logger.info(f'-------- attention avg: {sorted_attn_map_f}')
     top_20_keys = [key for key, value in sorted_attn_map_f[:80]]
+    top_20_values = [value for key, value in sorted_attn_map_f[:80]]
     logger.info(f'-------- count_keys: {len(sorted_attn_map_f)}')
-    logger.info(f'-------- top_60_keys: {top_20_keys}')
+    logger.info(f'-------- top_80_keys: {top_20_keys}')
+    logger.info(f'-------- top_80_values: {top_20_values}')
 
     time = datetime.now().strftime("%Y%m%d_%H%M%S")
     with open(os.path.join(args.path['dataset_dir'], args.file_name['top_keys_file']+'_'+time+'.jsonl'), 'w') as f:
         for key in top_20_keys:
             f.write(json.dumps(key, ensure_ascii=False) + '\n')
+
+    sorted_attn_map_show = sorted(attn_map.items(), key=lambda item: item[1], reverse=False)
+    keys, values = zip(*sorted_attn_map_show)
+    show_attn_rank(keys, values)
     return 0
 
 

@@ -25,7 +25,7 @@ cuda = "cuda:7"
 
 def load_config():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--dir-id", type=str, default="20240725-104805")
+    parser.add_argument("-o", "--dir-id", type=str, default="20240828-123208")
     parser.add_argument('--ds_config', type=str,
                         default='/public/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--ft_config', type=str,
@@ -61,7 +61,7 @@ def load_config():
 
 def main():
     args = load_config()
-    attn_map = calc_attn_one_model(args, '20240813-193004')
+    attn_map = calc_attn_one_model(args, '20240828-123208')
 
     return 0
 
@@ -126,9 +126,9 @@ def calc_attn_one_model(args, dir_id):
         input_ids = input_ids_tensor[0].tolist()
 
         attentions = output["attentions"]
-        attentions = torch.tensor(attentions[-1]).to(cuda)
+        attentions = torch.stack(attentions[-1]).to(cuda)
         attention_layers = torch.mean(attentions, axis=2).float()
-        layer_num, bs, head_num, s1, s2 = attention_layers.shape
+        layer_num, bs, s1, s2 = attention_layers.shape
         attention_layers = attention_layers.reshape(layer_num, s1, s2)
         output_token_decode_str = tokenizer.decode(output["sequences"][0], skip_special_tokens=True)
 
