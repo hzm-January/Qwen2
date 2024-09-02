@@ -100,7 +100,9 @@ def calc_attn_one_model(args, dir_id):
     attn_map_f = {}
     total_len = len(label_info)
     for i in range(total_len):
-        content = diagnose_test_dataset[i] + '\n' + args.prompt['finetune_diagnose_require']
+        prompt = args.prompt['finetune_diagnose_require']
+        if args.cls == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
+        content = diagnose_test_dataset[i] + '\n' + prompt
         messages = [
             {"role": "system", "content": "You are an ophthalmology specialist."},
             {"role": "user", "content": content}

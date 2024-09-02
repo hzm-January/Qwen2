@@ -110,7 +110,9 @@ def main():
     predicts = []
     for i in range(patient_cnt):
         # print(diagnose_test_dataset[i])
-        content = diagnose_test_dataset[i] + '\n' + args.prompt['finetune_diagnose_require']
+        prompt = args.prompt['finetune_diagnose_require']
+        if args.cls == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
+        content = diagnose_test_dataset[i] + '\n' + prompt
         messages = [
             {"role": "system", "content": "You are an ophthalmology specialist."},
             {"role": "user", "content": content}

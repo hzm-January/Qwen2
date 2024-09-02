@@ -22,7 +22,8 @@ cuda = "cuda:7"
 
 def load_config():
     parser = argparse.ArgumentParser()
-    parser.add_argument("-o", "--dir-id", type=str, default="20240725-104805")
+    parser.add_argument("--dir-id", type=str, default="20240830-130948")
+    parser.add_argument("--cls", type=str, default="single")
     parser.add_argument('--ds_config', type=str,
                         default='/public/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--ft_config', type=str,
@@ -61,13 +62,13 @@ def main():
 
     # calc_attn_one_model('20240813-193004')
 
-    dir_ids = ['20240827-200824', '20240827-205151', '20240827-212937', '20240827-221015', '20240828-123208']
-    # dir_ids = ['20240827-200824']
+    # dir_ids = ['20240827-200824', '20240827-205151', '20240827-212937', '20240827-221015', '20240828-123208']
+    dir_ids = ['20240830-130948']
     attn_map = calc_attn_multi_model(args, dir_ids)
     sorted_attn_map_f = sorted(attn_map.items(), key=lambda item: item[1], reverse=True)
     logger.info(f'-------- attention avg: {sorted_attn_map_f}')
-    top_20_keys = [key for key, value in sorted_attn_map_f[:80]]
-    top_20_values = [value for key, value in sorted_attn_map_f[:80]]
+    top_20_keys = [key for key, value in sorted_attn_map_f[:]]
+    top_20_values = [value for key, value in sorted_attn_map_f[:]]
     logger.info(f'-------- count_keys: {len(sorted_attn_map_f)}')
     logger.info(f'-------- top_80_keys: {top_20_keys}')
     logger.info(f'-------- top_80_values: {top_20_values}')
@@ -132,7 +133,9 @@ def calc_attn_one_model(args, dir_id):
     attn_map_f = {}
     total_len = len(label_info)
     for i in range(total_len):
-        content = diagnose_test_dataset[i] + '\n' + args.prompt['finetune_diagnose_require']
+        prompt = args.prompt['finetune_diagnose_require']
+        if args.cls == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
+        content = diagnose_test_dataset[i] + '\n' + prompt
         messages = [
             {"role": "system", "content": "You are an ophthalmology specialist."},
             {"role": "user", "content": content}

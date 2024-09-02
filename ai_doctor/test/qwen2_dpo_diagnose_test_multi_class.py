@@ -2,19 +2,24 @@ import os
 import json
 import yaml
 import argparse
+import numpy as np
 from pathlib import Path
 from loguru import logger
-from peft import AutoPeftModelForCausalLM, PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
+from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.metrics import classification_report
+from sklearn.metrics import precision_score, recall_score, f1_score
+from peft import PeftModel
 
+cuda = 'cuda:1'
+class_num = 4
 
-cuda='cuda:4'
 
 def load_config():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dir-id", type=str, default="20240725-104805")
+    parser.add_argument("--dir-id", type=str, default="dir-id")
+    parser.add_argument("--cls", type=str, default="multiple")
     parser.add_argument("--selected", type=int, default=0)
-    parser.add_argument("--cls", type=str, default="single")
     parser.add_argument('--ds_config', type=str,
                         default='/public/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--ft_config', type=str,
@@ -52,14 +57,8 @@ def main():
     args = load_config()
     # dir_id = '20240725-104805'
     # dir_id = '20240811-131954'
-
-    # sft_dir_id = '20240811-134819'  #
-    # dpo_dir_id = '20240811-223514'  #  '20240811-214158'  # '20240811-210134'  # '20240811-201031'
-    # diagnose_test_dataset_json = os.path.join(args.path['dataset_dir'], args.file_name['test_data'])
-    # diagnose_test_label_json = os.path.join(args.path['dataset_dir'], args.file_name['test_label'])
-
-    # sft_dir_id = '20240812-105343'  # '20240811-230536'  # '20240811-134819'
-    # dpo_dir_id = '20240812-135248'  # '20240812-083949'  # '20240811-223514' # '20240811-214158'  # '20240811-210134'  # '20240811-201031'
+    # dir_id = '20240811-134819' # '20240811-230536'
+    # dir_id = '20240812-105343' # word + all feature
 
     if args.selected:
         diagnose_test_dataset_json = os.path.join(args.path['dataset_dir'], args.file_name['test_fs_data'])
@@ -68,6 +67,8 @@ def main():
         diagnose_test_dataset_json = os.path.join(args.path['dataset_dir'], args.file_name['test_data'])
         diagnose_test_label_json = os.path.join(args.path['dataset_dir'], args.file_name['test_label'])
 
+    # dir_id = '20240811-230536'  #
+    #
     base_model_dir = os.path.join(args.ft_path['sft_model_dir'], args.dir_id)
     dpo_model_dir = os.path.join(args.ft_path['dpo_model_dir'], args.dir_id)
 
@@ -75,20 +76,6 @@ def main():
 
     diagnose_predict_result_json = os.path.join(diagnose_test_dataset_dir, 'diagnose_predict_result.json')
 
-    F_T = 1  # positive flag
-    F_F = 0  #
-
-    # base_model = AutoModelForCausalLM.from_pretrained(
-    #     base_model_dir,  # path to the output directory
-    #     device_map="cuda:0",
-    #     trust_remote_code=True,
-    #     bf16=True
-    # )
-    #
-    # model = PeftModel.from_pretrained(base_model, dpo_model_dir, device_map="cuda:0", trust_remote_code=True,
-    #                                   bf16=True)
-
-    # tokenizer = AutoTokenizer.from_pretrained(base_model_dir, trust_remote_code=True)
     base_model = AutoModelForCausalLM.from_pretrained(
         base_model_dir,
         device_map=cuda,
@@ -97,14 +84,10 @@ def main():
     )
 
     model = PeftModel.from_pretrained(base_model, dpo_model_dir)
-
     model.eval()
-    # merged_model = model.merge_and_unload()
-    # max_shard_size and safe serialization are not necessary.
-    # They respectively work for sharding checkpoint and save the model to safetensors
 
     tokenizer = AutoTokenizer.from_pretrained(args.ft_path['base_model_dir'], trust_remote_code=True)
-    if not hasattr(tokenizer, 'model_dir'):
+    if not hasattr(tokenizer, 'base_model_dir'):
         tokenizer.model_dir = args.ft_path['base_model_dir']
 
     with open(diagnose_test_dataset_json, 'r') as file:
@@ -113,17 +96,12 @@ def main():
         label_info = [json.loads(line) for line in file]
 
     patient_cnt = len(label_info)
-    print("---- data count ----: ", patient_cnt)
-
-    correct = 0
-    TP = 0
-    FP = 0
-    TN = 0
-    FN = 0
+    logger.info(f"---- data count ----: {patient_cnt}")
 
     predicts = []
+    correct = [0] * class_num
+    label_cnt = [0] * class_num
     for i in range(patient_cnt):
-
         # print(diagnose_test_dataset[i])
         prompt = args.prompt['finetune_diagnose_require']
         if args.cls == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
@@ -132,7 +110,7 @@ def main():
             {"role": "system", "content": "You are an ophthalmology specialist."},
             {"role": "user", "content": content}
         ]
-        if i == 0: logger.info(f'=============== dpo test message: {messages}')
+        if i == 0: logger.info(f'=============== sft test message: {messages}')
         text = tokenizer.apply_chat_template(
             messages,
             tokenize=False,
@@ -142,7 +120,7 @@ def main():
 
         generated_ids = model.generate(
             **model_inputs,
-            max_new_tokens=3512
+            max_new_tokens=20
         )
         generated_ids = [
             output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
@@ -157,26 +135,26 @@ def main():
         # print(new_query)
 
         label = label_info[i]
-        label = 1 if label else 0
 
-        # predict = 1 if response == "Yes" else 0
-        predict = 1 if 'yes' in response.lower() else 0
+        predict = 0
+        if response == "forme fruste keratoconus":
+            predict = 1
+        elif response == "subclinical keratoconus":
+            predict = 2
+        elif response == "clinical keratoconus":
+            predict = 3
+        elif response == "No":
+            predict = 0
+        else:
+            logger.warning(f'Error response : {response}')
+
         logger.info(f"id: {i}, predict: {predict}, label: {label}")
 
         predicts.append(predict)
 
-        if label == predict: correct += 1
+        if label == predict: correct[label] += 1
 
-        if label == F_T and predict == F_T:
-            TP += 1
-        elif label == F_F and predict == F_T:
-            FP += 1
-        elif label == F_F and predict == F_F:
-            TN += 1
-        elif label == F_T and predict == F_F:
-            FN += 1
-        else:
-            logger.info('Prediction is not Yes and not No either, It is %d, GT is %d', predict, label)
+        label_cnt[label] += 1
 
     path = Path(diagnose_test_dataset_dir)
     if not path.exists():
@@ -184,18 +162,38 @@ def main():
     with open(diagnose_predict_result_json, 'w') as f:
         json.dump(predicts, f, ensure_ascii=False)
 
-    sensitivity = TP / (TP + FN)
-    specificity = TN / (TN + FP)
-    # precision = TP/(TP+FP)
-    # recall = TP/(TP+FN)
-    # f1_ = 2*precision*recall/(precision+recall)
+    logger.info(f"----    correct   ---- {correct}")
+    logger.info(f"----  label count ---- {label_cnt}")
+    accs = [corr / label_cnt[i] for i, corr in enumerate(correct)]
+    logger.info(f"---- accuracy ---- {accs}")
 
-    f1 = 2 * TP / (2 * TP + FP + FN)
-    logger.info(f'TP: {TP}, FP: {FP}, TN: {TN}, FN: {FN}')
-    logger.info(f'准确率：{correct / patient_cnt} {(TP + TN) / (TP + FP + TN + FN)}')
-    logger.info(f'灵敏度：{sensitivity}')
-    logger.info(f'特异度：{specificity}')
-    logger.info(f'F1-Score：{f1}')
+    # 准确率
+    accuracy = accuracy_score(label_info, predicts)
+    logger.info(f"Accuracy: {accuracy}")
+    # 混淆矩阵
+    conf_matrix = confusion_matrix(label_info, predicts)
+    logger.info(f"Confusion Matrix:\n{conf_matrix}")
+    # 分类报告
+    class_report = classification_report(label_info, predicts)
+    logger.info(f"Classification Report:\n{class_report}")
+    # 精确率
+    precision = precision_score(label_info, predicts, average='macro')
+    logger.info(f"Precision: {precision}")
+    # 召回率
+    recall = recall_score(label_info, predicts, average='macro')
+    logger.info(f"Recall: {recall}")
+    # F1 分数
+    f1 = f1_score(label_info, predicts, average='macro')
+    logger.info(f"F1 Score: {f1}")
+
+    # Specificity for each class
+    specificity = []
+    for i in range(len(conf_matrix)):
+        tn = np.sum(conf_matrix) - (np.sum(conf_matrix[i, :]) + np.sum(conf_matrix[:, i]) - np.diag(conf_matrix)[i])
+        fp = np.sum(conf_matrix[:, i]) - np.diag(conf_matrix)[i]
+        specificity.append(tn / (tn + fp))
+    specificity = np.array(specificity)
+    logger.info(f"specificity: {specificity}")
 
 
 if __name__ == '__main__':

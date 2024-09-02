@@ -5,13 +5,15 @@ import argparse
 from pathlib import Path
 from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer
-
-cuda='cuda:1'
+from peft import AutoPeftModelForCausalLM, PeftModel
+cuda='cuda:4'
 
 def load_config():
     parser = argparse.ArgumentParser()
     parser.add_argument("--dir-id", type=str, default="dir-id")
     parser.add_argument("--selected", type=int, default=0)
+    parser.add_argument("--cls", type=str, default="single")
+    parser.add_argument("--lora", type=int, default=0)
     parser.add_argument('--ds_config', type=str,
                         default='/public/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--ft_config', type=str,
@@ -63,6 +65,7 @@ def main():
     #
     # diagnose_test_dataset_json = os.path.join(args.path['dataset_dir'], args.file_name['test_fs_data'])
     # diagnose_test_label_json = os.path.join(args.path['dataset_dir'], args.file_name['test_fs_label'])
+    base_model_dir = os.path.join(args.ft_path['base_model_dir'])
     model_dir = os.path.join(args.ft_path['sft_model_dir'], args.dir_id)
     diagnose_test_dataset_dir = os.path.join(model_dir, 'predict_result')
 
@@ -71,12 +74,24 @@ def main():
     F_T = 1  # positive flag
     F_F = 0  #
 
-    model = AutoModelForCausalLM.from_pretrained(
-        model_dir,  # path to the output directory
-        torch_dtype="auto",
-        device_map=cuda,
-        trust_remote_code=True
-    ).eval()
+    if args.lora:
+        base_model = AutoModelForCausalLM.from_pretrained(
+            base_model_dir,
+            device_map=cuda,
+            torch_dtype="auto",
+            trust_remote_code=True,
+        )
+
+        model = PeftModel.from_pretrained(base_model, model_dir)
+
+        model.eval()
+    else:
+        model = AutoModelForCausalLM.from_pretrained(
+            model_dir,  # path to the output directory
+            torch_dtype="auto",
+            device_map=cuda,
+            trust_remote_code=True
+        ).eval()
 
     tokenizer = AutoTokenizer.from_pretrained(args.ft_path['base_model_dir'], trust_remote_code=True)
     if not hasattr(tokenizer, 'base_model_dir'):
@@ -99,7 +114,9 @@ def main():
     predicts = []
     for i in range(patient_cnt):
         # print(diagnose_test_dataset[i])
-        content = diagnose_test_dataset[i] + '\n' + args.prompt['finetune_diagnose_require']
+        prompt = args.prompt['finetune_diagnose_require']
+        if args.cls.lower() == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
+        content = diagnose_test_dataset[i] + '\n' + prompt
         messages = [
             {"role": "system", "content": "You are an ophthalmology specialist."},
             {"role": "user", "content": content}

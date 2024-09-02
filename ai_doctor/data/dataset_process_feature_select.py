@@ -59,8 +59,9 @@ def note_template(args, dataset):
     sft_train_queries = []
     for i, note in enumerate(train_notes):
         sys_value = 'You are an ophthalmology specialist.'
-        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + note + '\n' + args.prompt[
-            'finetune_diagnose_require']
+        prompt = args.prompt['finetune_diagnose_require']
+        if args.cls == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
+        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + note + '\n' + prompt
         ass_value = "yes" if train_labels[i] else "no"
         patient_description = {'type': 'chatml',
                                'source': 'self-made',
@@ -74,8 +75,9 @@ def note_template(args, dataset):
     dpo_train_queries = []
     for i, note in enumerate(train_notes):
         sys_value = 'You are an ophthalmology specialist.'
-        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + note + '\n' + args.prompt[
-            'finetune_diagnose_require']
+        prompt = args.prompt['finetune_diagnose_require']
+        if args.cls == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
+        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + note + '\n' + prompt
         label = train_labels[i]
         patient_description = {'type': 'chatml',
                                'id': str(uuid.uuid4()),

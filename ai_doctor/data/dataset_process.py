@@ -10,11 +10,12 @@ from sklearn.model_selection import train_test_split
 from note_template import NoteTemplate
 from note_generator_helper import clean_query
 from note_template_config import *
+import random
 
 
 def load_config():
     parser = argparse.ArgumentParser()
-    parser.add_argument('--class', type=str, default='Single')
+    parser.add_argument('--cls', type=str, default='single')
     parser.add_argument('--selected', type=int, default=0)
     parser.add_argument('--digit-to-word', type=int, default=1)
     parser.add_argument('--config', type=str, default='/public/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
@@ -62,9 +63,10 @@ def note_template(args, dataset):
     sft_train_queries = []
     for i, note in enumerate(train_notes):
         sys_value = 'You are an ophthalmology specialist.'
-        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + note + '\n' + args.prompt[
-            'finetune_diagnose_require']
-        ass_value = "yes" if train_labels[i] else "no"
+        prompt = args.prompt['finetune_diagnose_require']
+        if args.cls.lower() == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
+        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + note + '\n' + prompt
+        ass_value = generate_ass_value_by_label(train_labels[i], args, 'pos')
         patient_description = {'type': 'chatml',
                                'source': 'self-made',
                                'messages': [{'role': 'system', 'content': sys_value},
@@ -77,17 +79,19 @@ def note_template(args, dataset):
     dpo_train_queries = []
     for i, note in enumerate(train_notes):
         sys_value = 'You are an ophthalmology specialist.'
-        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + note + '\n' + args.prompt[
-            'finetune_diagnose_require']
-        label = train_labels[i]
+        prompt = args.prompt['finetune_diagnose_require']
+        if args.cls == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
+        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + note + '\n' + prompt
+        ass_value_pos = generate_ass_value_by_label(train_labels[i], args, 'pos')
+        ass_value_neg = generate_ass_value_by_label(train_labels[i], args, 'neg')
         patient_description = {'type': 'chatml',
                                'id': str(uuid.uuid4()),
                                'chosen': [{"role": "system", "content": sys_value},
                                           {'role': 'user', 'content': user_value},
-                                          {'role': 'assistant', 'content': 'yes' if label else 'no'}],
+                                          {'role': 'assistant', 'content': ass_value_pos}],
                                'rejected': [{"role": "system", "content": sys_value},
                                             {'role': 'user', 'content': user_value},
-                                            {'role': 'assistant', 'content': 'no' if label else 'yes'}],
+                                            {'role': 'assistant', 'content': ass_value_neg}],
                                'prompt': user_value
                                }
         dpo_train_queries.append(patient_description)
@@ -100,8 +104,22 @@ def note_template(args, dataset):
     logger.info(f'sft train query: {sft_train_queries[0]}')
     logger.info(f'dpo train query: {dpo_train_queries[0]}')
     logger.info(f'test query: {test_queries[0]}')
+    logger.info(f'test label: {test_labels[0]}')
 
     return sft_train_queries, dpo_train_queries, test_queries, test_labels
+
+
+def generate_ass_value_by_label(label, args, flag):
+    label_words = ["No", "forme fruste keratoconus", "subclinical keratoconus", "clinical keratoconus"]
+    if flag == 'pos':  # positive
+        ass_value = "yes" if label else "no"
+        if args.cls.lower() == 'multiple':
+            ass_value = label_words[label]
+    else:
+        ass_value = "no" if label else "yes"
+        if args.cls.lower() == 'multiple':
+            ass_value = label_words[random.choice(list({0, 1, 2, 3} - {label}))]
+    return ass_value
 
 
 def load_dataset(args):
@@ -155,91 +173,100 @@ def preprocess(args, df):
 
 
 def preprocess_feature_select(args, df):
+    # top 10 keys
+    top_k = ["label", 'BMI', '性别', '揉眼睛的频率', '年龄', '睡觉时是否打鼾或患有睡眠呼吸暂停综合征？',
+             '每天使用电子屏幕（手机、电脑等）的总时间（小时）', '惯用手', '幼年时家庭经济状况',
+             '每次揉眼持续时间', '每天在黑暗环境中使用电子屏幕的时间（小时）', '文化程度', '春季角结膜炎',
+             '最常采用的睡姿', '感到工作/学习压力很大？', '每天在户外阳光/紫外线下活动时间（小时）',
+             '揉眼姿势', '阅读书籍', '揉眼时的力度', '是否怀过孕？', '常于夜间工作/学习？', '是否吸烟？',
+             '职业', '是否患有过敏性疾病？', '最常揉眼的部位', '睡觉时是否偏好把手或手臂垫放在眼睛上？',
+             '常在大量灰尘环境中工作或生活？', '是否饮酒？', '幼年时居住地', '是否对某些物质过敏？',
+             '过敏性结膜炎', '眼睑松弛综合征', '甲状腺疾病', '是否用过外源性性激素药物？', '是否患有其他疾病？', '倒睫', '干眼症']
     # top 80 keys
-    top_k = [
-        "label",
-        "性别",
-        "BMI",
-        "Dist. Apex-Thin.Loc. [mm](Dist. C-T)",
-        "揉眼睛的频率",
-        "幼年时家庭经济状况",
-        "Pachy Apex(CCT)",
-        "文化程度",
-        "Pachy Min (TCT)",
-        "Ambrósio’s relational thickness in the horizontal profile",
-        "Y position of the thinnest point",
-        "Minimum Ambrósio relational thickness",
-        "Average Ambrósio relational thickness",
-        "X position of the thinnest point",
-        "Mean eccentricity in the central 30 degrees by Fourier analysis",
-        "Maximum keratometry of the front surface",
-        "Km B (mm)",
-        "Intraocular pressure",
-        "幼年时居住地",
-        "Biomechanically corrected intraocular pressure",
-        "BAD Df",
-        "Root-mean-square of total aberrations of whole cornea",
-        "Index of surface variance",
-        "Maximum Ambrósio relational thickness",
-        "K1 F (D)",
-        "Pachy Prog Index Min.",
-        "RMS HOA (CB)",
-        "RMS (CF)",
-        "Steepest point of the front surface keratometry displacement in the x-axis",
-        "每次揉眼持续时间",
-        "Pachy Prog Index Max.",
-        "Keratoconus index",
-        "Corneal volume in a 5mm diameter zone around the corneal apex",
-        "RMS LOA (CB)",
-        "RMS HOA (CF)",
-        "Pachy Prog Index Avg.",
-        "Steepest point of the front surface keratometry displacement in the y-axis",
-        "Change in Arclength during the second applanation moment from the initial state",
-        "Corneal volume in a 10mm diameter zone around the corneal apex",
-        "Stiffness parameter at the first applanation",
-        "index of vertical asymmetry",
-        "RMS (CB)",
-        "Corneal volume in a 3mm diameter zone around the corneal apex",
-        "Ratio between the central deformation and the average of the peripheral deformation determined at 1mm",
-        "Elevation back",
-        "K1 B (D)",
-        "BAD Dp",
-        "C.Volume(chamber volume)",
-        "RMS LOA (CF)",
-        "Change in Arclength during the first applanation moment from the initial state",
-        "Elevation front",
-        "Change in Arclength during the highest concavity moment from the initial state",
-        "揉眼时的力度",
-        "Highest concavity deflection length",
-        "Integrated radius",
-        "Maximum deformation amplitude",
-        "BAD Dy",
-        "BAD Db",
-        "Maximum inverse concave radius",
-        "Length at the the first applanation",
-        "Root-mean-square of higher-order aberrations of whole cornea",
-        "K2 F (D)",
-        "Km F (D)",
-        "Time of reaching the first applanation",
-        "Index of height decentration",
-        "Time of undergoing the greatest degree of deformation and reaching the highest concavity",
-        "K2 B (D)",
-        "Corneal volume in a 7mm diameter zone around the corneal apex",
-        "Deflection area between the initial convex cornea and cornea at the first applanation on the analyzed horizontal sectional plane",
-        "Index of height asymmetry",
-        "Distance between the two bending peaks created in the cornea at the highest concavity",
-        "Ratio between the central deformation and the average of the peripheral deformation determined at 2mm",
-        "BAD Da",
-        "Deflection amplitude of the corneal apex at the first applanation",
-        "Deflection amplitude of the corneal apex at the highest concavity",
-        "BAD Dt",
-        "Length at the the second applanation",
-        "Chamber angle",
-        "Deflection area between the initial convex cornea and cornea at the highest concavity on the analyzed horizontal sectional plane",
-        "Time of reaching the second applanation",
-        "A.C.Depth Int"
-    ]
-    df = df[top_k[:61]]  # include label
+    # top_k = [
+    #     "label",
+    #     "性别",
+    #     "BMI",
+    #     "Dist. Apex-Thin.Loc. [mm](Dist. C-T)",
+    #     "揉眼睛的频率",
+    #     "幼年时家庭经济状况",
+    #     "Pachy Apex(CCT)",
+    #     "文化程度",
+    #     "Pachy Min (TCT)",
+    #     "Ambrósio’s relational thickness in the horizontal profile",
+    #     "Y position of the thinnest point",
+    #     "Minimum Ambrósio relational thickness",
+    #     "Average Ambrósio relational thickness",
+    #     "X position of the thinnest point",
+    #     "Mean eccentricity in the central 30 degrees by Fourier analysis",
+    #     "Maximum keratometry of the front surface",
+    #     "Km B (mm)",
+    #     "Intraocular pressure",
+    #     "幼年时居住地",
+    #     "Biomechanically corrected intraocular pressure",
+    #     "BAD Df",
+    #     "Root-mean-square of total aberrations of whole cornea",
+    #     "Index of surface variance",
+    #     "Maximum Ambrósio relational thickness",
+    #     "K1 F (D)",
+    #     "Pachy Prog Index Min.",
+    #     "RMS HOA (CB)",
+    #     "RMS (CF)",
+    #     "Steepest point of the front surface keratometry displacement in the x-axis",
+    #     "每次揉眼持续时间",
+    #     "Pachy Prog Index Max.",
+    #     "Keratoconus index",
+    #     "Corneal volume in a 5mm diameter zone around the corneal apex",
+    #     "RMS LOA (CB)",
+    #     "RMS HOA (CF)",
+    #     "Pachy Prog Index Avg.",
+    #     "Steepest point of the front surface keratometry displacement in the y-axis",
+    #     "Change in Arclength during the second applanation moment from the initial state",
+    #     "Corneal volume in a 10mm diameter zone around the corneal apex",
+    #     "Stiffness parameter at the first applanation",
+    #     "index of vertical asymmetry",
+    #     "RMS (CB)",
+    #     "Corneal volume in a 3mm diameter zone around the corneal apex",
+    #     "Ratio between the central deformation and the average of the peripheral deformation determined at 1mm",
+    #     "Elevation back",
+    #     "K1 B (D)",
+    #     "BAD Dp",
+    #     "C.Volume(chamber volume)",
+    #     "RMS LOA (CF)",
+    #     "Change in Arclength during the first applanation moment from the initial state",
+    #     "Elevation front",
+    #     "Change in Arclength during the highest concavity moment from the initial state",
+    #     "揉眼时的力度",
+    #     "Highest concavity deflection length",
+    #     "Integrated radius",
+    #     "Maximum deformation amplitude",
+    #     "BAD Dy",
+    #     "BAD Db",
+    #     "Maximum inverse concave radius",
+    #     "Length at the the first applanation",
+    #     "Root-mean-square of higher-order aberrations of whole cornea",
+    #     "K2 F (D)",
+    #     "Km F (D)",
+    #     "Time of reaching the first applanation",
+    #     "Index of height decentration",
+    #     "Time of undergoing the greatest degree of deformation and reaching the highest concavity",
+    #     "K2 B (D)",
+    #     "Corneal volume in a 7mm diameter zone around the corneal apex",
+    #     "Deflection area between the initial convex cornea and cornea at the first applanation on the analyzed horizontal sectional plane",
+    #     "Index of height asymmetry",
+    #     "Distance between the two bending peaks created in the cornea at the highest concavity",
+    #     "Ratio between the central deformation and the average of the peripheral deformation determined at 2mm",
+    #     "BAD Da",
+    #     "Deflection amplitude of the corneal apex at the first applanation",
+    #     "Deflection amplitude of the corneal apex at the highest concavity",
+    #     "BAD Dt",
+    #     "Length at the the second applanation",
+    #     "Chamber angle",
+    #     "Deflection area between the initial convex cornea and cornea at the highest concavity on the analyzed horizontal sectional plane",
+    #     "Time of reaching the second applanation",
+    #     "A.C.Depth Int"
+    # ]
+    df = df[top_k[:11]]  # include label
     # top 60 keys
     # df = df[[
     #     "性别",
@@ -425,10 +452,10 @@ def preprocess_yd(args, df):
     )
 
     # generate label for binary_class or multi_class
-    if args.binary_class:
+    if args.cls.lower() == "single":
         df['label'] = df[handle_columns].sum(axis=1).apply(lambda x: 1 if x != 0 else 0)
     else:  # multi_class
-        df['label'] = df[handle_columns].apply(lambda row: mode(row, nan_policy='omit').mode[0], axis=1)
+        df['label'] = df[handle_columns].apply(lambda row: mode(row, nan_policy='omit').mode, axis=1)
     df.drop(columns=handle_columns, inplace=True)
 
     return df
