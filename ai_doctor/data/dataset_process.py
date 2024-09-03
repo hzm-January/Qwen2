@@ -49,8 +49,11 @@ def load_config():
 #     return data_train, data_valid, data_test
 
 def note_template(args, dataset):
+    dataset['train'] = dataset['train'][dataset['train']['label'].isin(args.train_labels)]
     train_dataset = dataset['train'].loc[:, dataset['train'].columns != 'label']
     train_labels = dataset['train']['label'].values.tolist()
+    # 删除label中为 2，3 的数据，2024.09.03，训练使用label2,3测试不需要使用label2,3的数据
+    dataset['test'] = dataset['test'][dataset['test']['label'].isin(args.test_labels)]
     test_dataset = dataset['test'].loc[:, dataset['test'].columns != 'label']
     test_labels = dataset['test']['label'].values.tolist()
     train_notes = train_dataset.apply(lambda row: ', '.join(f"{c} is {row[c]}" for c in train_dataset.columns),
@@ -97,9 +100,10 @@ def note_template(args, dataset):
     # logger.info(f'train note : {train_note[0]}')
     # logger.info(f'test note : {test_note[0]}')
 
-    logger.info(f'sft train query: {sft_train_queries[0]}')
-    logger.info(f'dpo train query: {dpo_train_queries[0]}')
-    logger.info(f'test query: {test_queries[0]}')
+    logger.info(f'===== sft train query: {sft_train_queries[0]}')
+    logger.info(f'===== dpo train query: {dpo_train_queries[0]}')
+    logger.info(f'===== test query: {test_queries[0]}')
+    logger.info(f'===== test label: {test_labels}')
 
     return sft_train_queries, dpo_train_queries, test_queries, test_labels
 
@@ -472,8 +476,9 @@ def main():
     # 1 config
     args = load_config()
     # logger.info(f'Processing {args}')
-    logger.info(f'table_ids {args.table_ids}')
-    logger.info(f'shuffle {args.shuffle} {type(args.shuffle)}')
+    logger.info(f'table_ids: {args.table_ids}')
+    logger.info(f'shuffle: {args.shuffle} {type(args.shuffle)}')
+    logger.info(f'tune_hyperparams: {args.tune_hyperparams}')
 
     # 2 lode data
     dataset = load_dataset(args)
