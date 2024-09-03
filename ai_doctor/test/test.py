@@ -58,3 +58,6 @@ for i in range(len(cm)):
     specificity.append(tn / (tn + fp))
 specificity = np.array(specificity)
 print(specificity)
+
+la = [1,2,34,55,6,7,55,1,2,3,4]
+print(la.count(1))

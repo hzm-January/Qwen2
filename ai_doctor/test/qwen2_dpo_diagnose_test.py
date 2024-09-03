@@ -6,7 +6,8 @@ from pathlib import Path
 from loguru import logger
 from peft import AutoPeftModelForCausalLM, PeftModel
 from transformers import AutoModelForCausalLM, AutoTokenizer
-
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
 
 cuda='cuda:4'
 
@@ -49,6 +50,7 @@ def load_config():
 
 
 def main():
+    logger.info('============================ dpo binary test starts now =======================')
     args = load_config()
     # dir_id = '20240725-104805'
     # dir_id = '20240811-131954'
@@ -126,7 +128,7 @@ def main():
 
         # print(diagnose_test_dataset[i])
         prompt = args.prompt['finetune_diagnose_require']
-        if args.cls == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
+        # if args.cls == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
         content = diagnose_test_dataset[i] + '\n' + prompt
         messages = [
             {"role": "system", "content": "You are an ophthalmology specialist."},
@@ -196,6 +198,25 @@ def main():
     logger.info(f'灵敏度：{sensitivity}')
     logger.info(f'特异度：{specificity}')
     logger.info(f'F1-Score：{f1}')
+
+
+    fpr, tpr, thresholds = roc_curve(label_info, predicts)
+    roc_auc = auc(fpr, tpr)
+    logger.info(f'roc_auc: {roc_auc}')
+    plt.figure()
+    plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.0])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic')
+    plt.legend(loc='lower right')
+    roc_path = os.path.join(args.path['dataset_dir'], 'roc_curve.png')
+    plt.savefig(roc_path, dpi=300, bbox_inches='tight')
+    # plt.show()
+    logger.info(f'roc path: {roc_path}')
+    logger.info('============================ dpo binary test finished =======================')
 
 
 if __name__ == '__main__':

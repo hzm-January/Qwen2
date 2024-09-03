@@ -9,6 +9,9 @@ from transformers import AutoModelForCausalLM, AutoTokenizer
 from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.metrics import classification_report
 from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import roc_curve, auc
+import matplotlib.pyplot as plt
+from sklearn.preprocessing import label_binarize
 
 cuda = 'cuda:1'
 class_num = 4
@@ -53,6 +56,7 @@ def load_config():
 
 
 def main():
+    logger.info('============================ sft multi-class test starts now =======================')
     args = load_config()
     # dir_id = '20240725-104805'
     # dir_id = '20240811-131954'
@@ -98,10 +102,6 @@ def main():
     logger.info(f"---- data count ----: {patient_cnt}")
 
     correct = [0] * class_num
-    TP = 0
-    FP = 0
-    TN = 0
-    FN = 0
 
     predicts = []
     label_cnt = [0] * class_num
@@ -124,7 +124,7 @@ def main():
 
         generated_ids = model.generate(
             **model_inputs,
-            max_new_tokens=20
+            max_new_tokens=100
         )
         generated_ids = [
             output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
@@ -132,7 +132,8 @@ def main():
 
         response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
 
-        if i < 5: logger.info(response)
+        # if i < 5: logger.info(response)
+        logger.info(response)
         # new_query = diagnose_test_dataset[i]+"请根据检测结果诊断该人员是否患有圆锥角膜病。"
         # response, history = model.chat(tokenizer, query=new_query, history=history)
         # label = F_T if label_info[i] else F_F
@@ -141,13 +142,24 @@ def main():
         label = label_info[i]
 
         predict = 0
-        if response == "forme fruste keratoconus":
+        # if response == "forme fruste keratoconus":
+        #     predict = 1
+        # elif response == "subclinical keratoconus":
+        #     predict = 2
+        # elif response == "clinical keratoconus":
+        #     predict = 3
+        # elif response == "No":
+        #     predict = 0
+        # else:
+        #     logger.warning(f'Error response : {response}')
+
+        if "forme fruste" in response:
             predict = 1
-        elif response == "subclinical keratoconus":
+        elif "subclinical" in response:
             predict = 2
-        elif response == "clinical keratoconus":
+        elif "clinical" in response:
             predict = 3
-        elif response == "No":
+        elif "No" in response:
             predict = 0
         else:
             logger.warning(f'Error response : {response}')
@@ -168,7 +180,7 @@ def main():
 
     logger.info(f"----    correct   ---- {correct}")
     logger.info(f"----  label count ---- {label_cnt}")
-    accs = [corr / label_cnt[i] for i, corr in enumerate(correct)]
+    accs = [corr / label_cnt[i] if label_cnt[i] != 0 else 0 for i, corr in enumerate(correct)]
     logger.info(f"---- accuracy ---- {accs}")
 
     # 准确率
@@ -199,6 +211,58 @@ def main():
     specificity = np.array(specificity)
     logger.info(f"specificity: {specificity}")
 
+    # Binarize the output (one-hot encoding)
+    y_test_bin = label_binarize(predicts, classes=list(range(class_num)))
+    y_score_bin = label_binarize(label_info, classes=list(range(class_num)))
+
+    fpr = dict()
+    tpr = dict()
+    roc_auc = dict()
+
+    for i in range(class_num):
+        fpr[i], tpr[i], _ = roc_curve(y_test_bin[:, i], y_score_bin[:, i])
+        roc_auc[i] = auc(fpr[i], tpr[i])
+
+    # Micro-average ROC curve and ROC area
+    fpr["micro"], tpr["micro"], _ = roc_curve(y_test_bin.ravel(), y_score_bin.ravel())
+    roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
+
+    # Macro-average ROC curve and ROC area
+    all_fpr = np.unique(np.concatenate([fpr[i] for i in range(class_num)]))
+    mean_tpr = np.zeros_like(all_fpr)
+    for i in range(class_num):
+        mean_tpr += np.interp(all_fpr, fpr[i], tpr[i])
+
+    mean_tpr /= class_num
+    fpr["macro"] = all_fpr
+    tpr["macro"] = mean_tpr
+    roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
+
+    plt.figure()
+    plt.plot(fpr["micro"], tpr["micro"], color='deeppink', linestyle=':', linewidth=4,
+             label=f'micro-average ROC curve (area = {roc_auc["micro"]:.2f})')
+    plt.plot(fpr["macro"], tpr["macro"], color='navy', linestyle=':', linewidth=4,
+             label=f'macro-average ROC curve (area = {roc_auc["macro"]:.2f})')
+
+    colors = ['aqua', 'darkorange', 'cornflowerblue', 'darkgreen']
+    for i, color in enumerate(colors):
+        plt.plot(fpr[i], tpr[i], color=color, lw=2, label=f'ROC curve of class {i} (area = {roc_auc[i]:.2f})')
+
+    plt.plot([0, 1], [0, 1], 'k--', lw=2)
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.0])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Multi-class ROC curve')
+    plt.legend(loc="lower right")
+
+    roc_path = os.path.join(args.path['dataset_dir'], 'sft_mc_roc_curve.png')
+    plt.savefig(roc_path, dpi=300, bbox_inches='tight')
+    logger.info(f'roc path: {roc_path}')
+    logger.info('============================ sft multi-class test finished =======================')
+
+    # 显示图片
+    plt.show()
 
 if __name__ == '__main__':
     main()

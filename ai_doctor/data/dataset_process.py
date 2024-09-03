@@ -50,8 +50,11 @@ def load_config():
 #     return data_train, data_valid, data_test
 
 def note_template(args, dataset):
+    dataset['train'] = dataset['train'][dataset['train']['label'].isin(args.train_labels)]
     train_dataset = dataset['train'].loc[:, dataset['train'].columns != 'label']
     train_labels = dataset['train']['label'].values.tolist()
+    # 删除label中为 2，3 的数据，2024.09.03，训练使用label2,3测试不需要使用label2,3的数据
+    dataset['test'] = dataset['test'][dataset['test']['label'].isin(args.test_labels)]
     test_dataset = dataset['test'].loc[:, dataset['test'].columns != 'label']
     test_labels = dataset['test']['label'].values.tolist()
     train_notes = train_dataset.apply(lambda row: ', '.join(f"{c} is {row[c]}" for c in train_dataset.columns),
@@ -80,7 +83,7 @@ def note_template(args, dataset):
     for i, note in enumerate(train_notes):
         sys_value = 'You are an ophthalmology specialist.'
         prompt = args.prompt['finetune_diagnose_require']
-        if args.cls == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
+        if args.cls.lower() == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
         user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + note + '\n' + prompt
         ass_value_pos = generate_ass_value_by_label(train_labels[i], args, 'pos')
         ass_value_neg = generate_ass_value_by_label(train_labels[i], args, 'neg')
@@ -100,6 +103,15 @@ def note_template(args, dataset):
 
     # logger.info(f'train note : {train_note[0]}')
     # logger.info(f'test note : {test_note[0]}')
+
+    logger.info(f'===== after preprocess train dataset label count: {train_labels.count(0)},'
+                f'{train_labels.count(1)}, '
+                f'{train_labels.count(2)}, '
+                f'{train_labels.count(3)}')
+    logger.info(f'===== after preprocess test dataset label count: {test_labels.count(0)},'
+                f'{test_labels.count(1)}, '
+                f'{test_labels.count(2)}, '
+                f'{test_labels.count(3)}')
 
     logger.info(f'sft train query: {sft_train_queries[0]}')
     logger.info(f'dpo train query: {dpo_train_queries[0]}')
@@ -150,9 +162,14 @@ def load_dataset(args):
     else:  # shuffle & random split
         dataset_train, dataset_test = train_test_split(df, test_size=args.test_dataset_ratio, shuffle=args.shuffle,
                                                        stratify=df['label'])
-    # logger.info(
-    #     f'train dataset label count: 1 - {dataset_train["label"].sum()}, 0 - {dataset_train["label"].eq(0).sum()}')
-    # logger.info(f'test dataset label count: 1 - {dataset_test["label"].sum()}, 0 - {dataset_test["label"].eq(0).sum()}')
+    logger.info(f'===== befor preprocess train dataset label count: {dataset_train["label"].eq(0).sum()},'
+                f'{dataset_train["label"].eq(1).sum()}, '
+                f'{dataset_train["label"].eq(2).sum()}, '
+                f'{dataset_train["label"].eq(3).sum()}')
+    logger.info(f'===== befor preprocess test dataset label count: 0 - {dataset_test["label"].eq(0).sum()},'
+                f'{dataset_test["label"].eq(1).sum()}, '
+                f'{dataset_test["label"].eq(2).sum()}, '
+                f'{dataset_test["label"].eq(3).sum()}')
 
     dataset = {'train': dataset_train, 'test': dataset_test}
     return dataset

@@ -1,12 +1,14 @@
-table_ids: [ 0 ]
+table_ids: [ 0,1,2 ]
 label_ids: [ 0,1,2,3 ]
 shuffle: True
+tune_hyperparams: True
 seed: 42
 label_column_name: '0= N 1=FFKC 2=SKC 3=CKC'
 binary_class: True
 train_dataset_ratio: 0.8
 test_dataset_ratio: 0.2
-tune_hyperparams: False
+train_labels: [0,1,2,3]
+test_labels: [0,1]
 dataset_name: 'yiduo'
 path:
   dataset_dir: '/public/whr/hzm/code/qwen2/ai_doctor/source'

@@ -51,7 +51,7 @@ MASTER_ADDR=${MASTER_ADDR:-localhost}
 # The port for communication
 MASTER_PORT=${MASTER_PORT:-6001}
 
-for i in {1..6}
+for i in {1..10}
 do
   echo "Numver $i"
   DIR_ID=$(date '+%Y%m%d-%H%M%S')
