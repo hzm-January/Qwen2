@@ -144,7 +144,7 @@ def main():
 
         generated_ids = model.generate(
             **model_inputs,
-            max_new_tokens=3512
+            max_new_tokens=100
         )
         generated_ids = [
             output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
