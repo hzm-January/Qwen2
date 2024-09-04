@@ -61,3 +61,6 @@ print(specificity)
 
 la = [1,2,34,55,6,7,55,1,2,3,4]
 print(la.count(1))
+
+set1 = set([1,23,3])-{3}
+print(set1)

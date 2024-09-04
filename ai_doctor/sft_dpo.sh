@@ -17,13 +17,15 @@ Q_LORA=False
 SELECTED=0
 DIGIT_TO_WORD=1
 
-
-MODEL="/public/whr/hzm/model/qwen2-base/qwen2/qwen2-7b-instruct"
+ROOT="/public/whr"
+CODE_ROOT="$ROOT/hzm/code/qwen2"
+MODEL_ROOT="$ROOT/hzm/model"
+MODEL="$MODEL_ROOT/qwen2-base/qwen2/qwen2-7b-instruct"
 # Set the path if you do not want to load from huggingface directly
 # ATTENTION: specify the path to your training data, which should be a json file consisting of a list of conversations.
 # See https://qwen.readthedocs.io/en/latest/training/SFT/example.html#data-preparation for more information.
 
-DS_CONFIG_PATH="/public/whr/hzm/code/qwen2/examples/sft/ds_config_zero3.json"
+DS_CONFIG_PATH="$CODE_ROOT/examples/sft/ds_config_zero3.json"
 
 export PATH=/usr/local/cuda-12.1/bin:$PATH
 
@@ -51,16 +53,18 @@ MASTER_ADDR=${MASTER_ADDR:-localhost}
 # The port for communication
 MASTER_PORT=${MASTER_PORT:-6001}
 
+DIR_IDS_ARR=()
+
 for i in {1..10}
 do
   echo "Numver $i"
   DIR_ID=$(date '+%Y%m%d-%H%M%S')
-  SFT_OUTPUT_DIR="/public/whr/hzm/model/qwen2-sft/$DIR_ID"
-  DPO_OUTPUT_DIR="/public/whr/hzm/model/qwen2-dpo/$DIR_ID"
+  SFT_OUTPUT_DIR="$MODEL_ROOT/qwen2-sft/$DIR_ID"
+  DPO_OUTPUT_DIR="$MODEL_ROOT/qwen2-dpo/$DIR_ID"
 
   SFT_TRAIN_DATA=$([ "$SELECTED" -eq 1 ] && echo "$SFT_OUTPUT_DIR/source/sft_fs_train_data.jsonl" || echo "$SFT_OUTPUT_DIR/source/sft_train_data.jsonl")
-  SFT_TEST_FILE_PATH=$([ "$CLS" = "single" ] && echo "/public/whr/hzm/code/qwen2/ai_doctor/test/qwen2_sft_diagnose_test.py" || echo "/public/whr/hzm/code/qwen2/ai_doctor/test/qwen2_sft_diagnose_test_multi_class.py")
-  DPO_TEST_FILE_PATH=$([ "$CLS" = "single" ] && echo "/public/whr/hzm/code/qwen2/ai_doctor/test/qwen2_dpo_diagnose_test.py" || echo "/public/whr/hzm/code/qwen2/ai_doctor/test/qwen2_dpo_diagnose_test_multi_class.py")
+  SFT_TEST_FILE_PATH=$([ "$CLS" = "single" ] && echo "$CODE_ROOT/ai_doctor/test/qwen2_sft_diagnose_test.py" || echo "$CODE_ROOT/ai_doctor/test/qwen2_sft_diagnose_test_multi_class.py")
+  DPO_TEST_FILE_PATH=$([ "$CLS" = "single" ] && echo "$CODE_ROOT/ai_doctor/test/qwen2_dpo_diagnose_test.py" || echo "$CODE_ROOT/ai_doctor/test/qwen2_dpo_diagnose_test_multi_class.py")
 
 
   echo "[DIGIT_TO_WORD]:  $DIGIT_TO_WORD, [SELECTED]: $SELECTED"
@@ -81,9 +85,9 @@ do
   "
 
   run_sh="CUDA_VISIBLE_DEVICES=$CUDA_IDS \
-      /public/whr/anaconda3/envs/hzm-qwen2-01/bin/torchrun \
+      $ROOT/anaconda3/envs/hzm-qwen2-01/bin/torchrun \
       $DISTRIBUTED_ARGS \
-      /public/whr/hzm/code/qwen2/examples/sft/finetune.py \
+      $CODE_ROOT/examples/sft/finetune.py \
       --model_name_or_path $MODEL \
       --data_path $SFT_TRAIN_DATA \
       --bf16 True \
@@ -112,21 +116,35 @@ do
       "
 
   # 1 generate train and test dataset with selected features
-  /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 /public/whr/hzm/code/qwen2/ai_doctor/data/dataset_process.py --digit-to-word $DIGIT_TO_WORD --cls $CLS --selected $SELECTED 2>&1 | tee "$SFT_OUTPUT_DIR/train_model.log"
+  /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $CODE_ROOT/ai_doctor/data/dataset_process.py --digit-to-word $DIGIT_TO_WORD --cls $CLS --selected $SELECTED 2>&1 | tee "$SFT_OUTPUT_DIR/train_model.log"
   # 2 copy dataset from ai_doctor to output_dir/source/
   mkdir -p $SFT_OUTPUT_DIR/source
-  cp -r /public/whr/hzm/code/qwen2/ai_doctor/source/*.jsonl $SFT_OUTPUT_DIR/source
+  cp -r $CODE_ROOT/ai_doctor/source/*.jsonl $SFT_OUTPUT_DIR/source
 
   mkdir -p $DPO_OUTPUT_DIR/source
-  cp -r /public/whr/hzm/code/qwen2/ai_doctor/source/*.jsonl $DPO_OUTPUT_DIR/source
+  cp -r $CODE_ROOT/ai_doctor/source/*.jsonl $DPO_OUTPUT_DIR/source
 
   # 3 sft train
   echo "[run_sh]: $run_sh"
   eval $run_sh 2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
+
+  DIR_IDS_ARR[${#DIR_IDS_ARR[@]}]=DIR_ID
+
   ## 4 sft test
-  /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED  2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
+#  /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED  2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
   ## 5 dpo train
-  deepspeed --include localhost:$CUDA_IDS /public/whr/hzm/code/qwen2/ai_doctor/dpo/main_train.py --dir_id $DIR_ID  --selected $SELECTED 2>&1 | tee "$DPO_OUTPUT_DIR/train_model.log"
+  deepspeed --include localhost:$CUDA_IDS $CODE_ROOT/ai_doctor/dpo/main_train.py --dir_id $DIR_ID  --selected $SELECTED 2>&1 | tee "$DPO_OUTPUT_DIR/train_model.log"
   # 6 dpo test
   /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED 2>&1 | tee -a "$DPO_OUTPUT_DIR/train_model.log"
+done
+# test
+for CHECK_DIR_ID in "${DIR_IDS_ARR[@]}":
+do
+  echo ${CHECK_DIR_ID}
+  CHECK_SFT_OUTPUT_DIR="$MODEL_ROOT/qwen2-sft/$CHECK_DIR_ID"
+  CHECK_DPO_OUTPUT_DIR="$MODEL_ROOT/qwen2-dpo/$CHECK_DIR_ID"
+  ## 4 sft test
+  /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $CHECK_DIR_ID --selected $SELECTED 2>&1 | tee -a "$CHECK_SFT_OUTPUT_DIR/train_model.log"
+  # 6 dpo test
+  /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $CHECK_DIR_ID --selected $SELECTED 2>&1 | tee -a "$CHECK_DPO_OUTPUT_DIR/train_model.log"
 done

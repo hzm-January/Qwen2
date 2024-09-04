@@ -118,7 +118,7 @@ def main():
     for i in range(patient_cnt):
         # print(diagnose_test_dataset[i])
         prompt = args.prompt['finetune_diagnose_require']
-        # if args.cls.lower() == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
+        if args.cls.lower() == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
         content = diagnose_test_dataset[i] + '\n' + prompt
         messages = [
             {"role": "system", "content": "You are an ophthalmology specialist."},
@@ -142,7 +142,8 @@ def main():
 
         response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
 
-        if i < 5: logger.info(response)
+        # if i < 5: logger.info(response)
+        logger.info(response)
         # new_query = diagnose_test_dataset[i]+"请根据检测结果诊断该人员是否患有圆锥角膜病。"
         # response, history = model.chat(tokenizer, query=new_query, history=history)
         # label = F_T if label_info[i] else F_F
@@ -153,6 +154,7 @@ def main():
 
         # predict = 1 if response == "Yes" else 0
         predict = 1 if 'yes' in response.lower() else 0
+        # predict = 1 if 'forme fruste' in response.lower() else 0
         logger.info(f"id: {i}, predict: {predict}, label: {label}")
 
         predicts.append(predict)
@@ -191,6 +193,9 @@ def main():
 
     fpr, tpr, thresholds = roc_curve(label_info, predicts)
     roc_auc = auc(fpr, tpr)
+    logger.info(f'false positive rate ↓ : {fpr}')
+    logger.info(f'true positive rate ↑ : {tpr}')
+    logger.info(f'thresholds : {thresholds}')
     logger.info(f'roc_auc: {roc_auc}')
     plt.figure()
     plt.plot(fpr, tpr, color='darkorange', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
@@ -201,7 +206,7 @@ def main():
     plt.ylabel('True Positive Rate')
     plt.title('Receiver Operating Characteristic')
     plt.legend(loc='lower right')
-    roc_path = os.path.join(args.path['dataset_dir'], 'roc_curve.png')
+    roc_path = os.path.join(args.path['dataset_dir'], 'sft_bc_roc_curve.png')
     plt.savefig(roc_path, dpi=300, bbox_inches='tight')
     # plt.show()
     logger.info(f'roc path: {roc_path}')

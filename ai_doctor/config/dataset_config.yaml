@@ -7,7 +7,7 @@ label_column_name: '0= N 1=FFKC 2=SKC 3=CKC'
 binary_class: True
 train_dataset_ratio: 0.8
 test_dataset_ratio: 0.2
-train_labels: [0,1,2,3]
+train_labels: [0,1]
 test_labels: [0,1]
 dataset_name: 'yiduo'
 path:
@@ -27,8 +27,9 @@ file_name:
   top_keys_file: 'top_keys_all_all_seed42'
 prompt:
   finetune_diagnose_prefix: "The patient's diagnosis details indicate the following: "
-  finetune_diagnose_require: "Does the diagnosis details of this patient show a keratoconus disease? yes or no?"
+  finetune_diagnose_require: "Does the diagnosis details of this patient show a forme fruste keratoconus disease? yes or no?"
   finetune_diagnose_require_mc: "Based on these symptoms, which of the following conditions is the patient most likely to have: forme fruste keratoconus, subclinical keratoconus, clinical keratoconus, No?"
+#  finetune_diagnose_require_mc: "Does the diagnosis details of this patient show a forme fruste keratoconus disease? yes or no?"
   finetune_answer_require: "Please answer this question with yes or no."
   diagnose_in_context_learning: "The following detection indicators and theoretical basis are known for diagnosing whether one has keratoconus:
     1. The frequency, duration, strength, preference and location of the patient's eye rubbing. Theoretical basis: Frequent and forceful eye rubbing is considered to be one of the risk factors for keratoconus, because mechanical eye rubbing can exert pressure on the cornea, causing it to deform and thin.

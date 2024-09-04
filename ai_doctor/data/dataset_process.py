@@ -130,7 +130,7 @@ def generate_ass_value_by_label(label, args, flag):
     else:
         ass_value = "no" if label else "yes"
         if args.cls.lower() == 'multiple':
-            ass_value = label_words[random.choice(list({0, 1, 2, 3} - {label}))]
+            ass_value = label_words[random.choice(list(set(args.train_labels) - {label}))]
     return ass_value
 
 
@@ -469,10 +469,11 @@ def preprocess_yd(args, df):
     )
 
     # generate label for binary_class or multi_class
-    if args.cls.lower() == "single":
-        df['label'] = df[handle_columns].sum(axis=1).apply(lambda x: 1 if x != 0 else 0)
-    else:  # multi_class
-        df['label'] = df[handle_columns].apply(lambda row: mode(row, nan_policy='omit').mode, axis=1)
+    # if args.cls.lower() == "single":
+    #     df['label'] = df[handle_columns].sum(axis=1).apply(lambda x: 1 if x != 0 else 0)
+    # else:  # multi_class
+    #     df['label'] = df[handle_columns].apply(lambda row: mode(row, nan_policy='omit').mode, axis=1)
+    df['label'] = df[handle_columns].apply(lambda row: mode(row, nan_policy='omit').mode, axis=1)
     df.drop(columns=handle_columns, inplace=True)
 
     return df
