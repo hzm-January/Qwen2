@@ -35,21 +35,29 @@ class STrainer(Trainer):
         """
         model.train()
         inputs = self._prepare_inputs(inputs)
+        # inputs['input_ids'] = inputs['input_ids'].float()
+        # inputs['input_ids'].requires_grad = True
 
         # if is_sagemaker_mp_enabled():
         #     loss_mb = smp_forward_backward(model, inputs, self.args.gradient_accumulation_steps)
         #     return loss_mb.reduce_mean().detach().to(self.args.device)
-
         with self.compute_loss_context_manager():
             loss = self.compute_loss(model, inputs)
 
-        del inputs
+
         torch.cuda.empty_cache()
 
         if self.args.n_gpu > 1:
             loss = loss.mean()  # mean() to average on multi-gpu parallel training
 
         self.accelerator.backward(loss)
+        # self.accelerator.backward(loss, retain_graph=True)
+
+        # grads = torch.autograd.grad(loss, inputs['input_ids'], retain_graph=True)[0]
+        #
+        # print(grads)
+
+        del inputs
 
         return loss.detach() / self.args.gradient_accumulation_steps
 
@@ -59,11 +67,22 @@ class STrainer(Trainer):
 
         Subclass and override for custom behavior.
         """
-        if self.label_smoother is not None and "labels" in inputs:
-            labels = inputs.pop("labels")
-        else:
-            labels = None
-        outputs = model(**inputs)
+        # if self.label_smoother is not None and "labels" in inputs:
+        #     labels = inputs.pop("labels")
+        # else:
+        #     labels = None
+        #
+        # TODO: 1 Original Prediction
+        outputs_original = model(**inputs)
+
+        # TODO: 2 Mask
+        # feature_mask =
+
+        # TODO: 2 Masked Prediction
+        # attention_mask = input_ids.ne(tokenizer.pad_token_id) # finetune.py中计算的padding mask
+        inputs['attention_mask'] = inputs['attention_mask'] * feature_mask
+        outputs_masked = model(**inputs)
+
         # Save past state if it exists
         # TODO: this needs to be fixed and made cleaner later.
         if self.args.past_index >= 0:

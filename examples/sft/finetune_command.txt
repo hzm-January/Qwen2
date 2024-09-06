@@ -1,8 +1,8 @@
 bash finetune.sh -m <model_path> -d <data_path> --deepspeed <config_path> [--use_lora True] [--q_lora True]
 
-bash finetune.sh -m /public/njllm/hzm/model/qwen2-base/qwen2/qwen2-7b-instruct -d /public/njllm/hzm/code/qwen2/ai_doctor/source/sft_train_data.jsonl --deepspeed /public/njllm/hzm/code/qwen2/examples/sft/ds_config_zero3.json
+bash finetune.sh -m /public/njllm/hzm/model/qwen2-base/qwen2/qwen2-7b-instruct -d /public/njllm/hzm/code/qwen2_loss/ai_doctor/source/sft_train_data.jsonl --deepspeed /public/njllm/hzm/code/qwen2_loss/examples/sft/ds_config_zero3.json
 
-bash finetune.sh -m /public/njllm/hzm/model/qwen2-base/qwen2/qwen2-7b-instruct -d /public/njllm/hzm/code/qwen2/ai_doctor/source/sft_train_data.jsonl --deepspeed /public/njllm/hzm/code/qwen2/examples/sft/ds_config_zero3.json --use_lora True
+bash finetune.sh -m /public/njllm/hzm/model/qwen2-base/qwen2/qwen2-7b-instruct -d /public/njllm/hzm/code/qwen2_loss/ai_doctor/source/sft_train_data.jsonl --deepspeed /public/njllm/hzm/code/qwen2_loss/examples/sft/ds_config_zero3.json --use_lora True
 
-bash finetune.sh -m /public/njllm/hzm/model/qwen2-base/qwen2/qwen2-7b-instruct -d /public/njllm/hzm/code/qwen2/ai_doctor/source/sft_fs_train_data.jsonl --deepspeed /public/njllm/hzm/code/qwen2/examples/sft/ds_config_zero3.json
+bash finetune.sh -m /public/njllm/hzm/model/qwen2-base/qwen2/qwen2-7b-instruct -d /public/njllm/hzm/code/qwen2_loss/ai_doctor/source/sft_fs_train_data.jsonl --deepspeed /public/njllm/hzm/code/qwen2_loss/examples/sft/ds_config_zero3.json
 

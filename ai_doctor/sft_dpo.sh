@@ -12,12 +12,12 @@ DIR_ID=$(date '+%Y%m%d-%H%M%S')
 SFT_OUTPUT_DIR="/public/njllm/hzm/model/qwen2-sft/$DIR_ID"
 DPO_OUTPUT_DIR="/public/njllm/hzm/model/qwen2-dpo/$DIR_ID"
 
-MODEL="/public/njllm/hzm/model/qwen2-base/qwen2/qwen2-7b-instruct"
+MODEL="/public/njllm/hzm/model/qwen2-base/qwen2-7b-instruct"
 # Set the path if you do not want to load from huggingface directly
 # ATTENTION: specify the path to your training data, which should be a json file consisting of a list of conversations.
 # See https://qwen.readthedocs.io/en/latest/training/SFT/example.html#data-preparation for more information.
 
-DS_CONFIG_PATH="/public/njllm/hzm/code/qwen2/examples/sft/ds_config_zero3.json"
+DS_CONFIG_PATH="/public/njllm/hzm/code/qwen2_loss/examples/sft/ds_config_zero3.json"
 USE_LORA=False
 Q_LORA=False
 SELECTED=1
@@ -39,7 +39,7 @@ NNODES=${NNODES:-1}
 # The rank of this worker, should be in {0, ..., WORKER_CNT-1}, for single-worker training, please set to 0
 NODE_RANK=${NODE_RANK:-0}
 
-MASTER_ADDR="172.18.127.64"
+MASTER_ADDR="172.18.127.62"
 MASTER_PORT=6002
 # The ip address of the rank-0 worker, for single-worker training, please set to localhost
 MASTER_ADDR=${MASTER_ADDR:-localhost}
@@ -55,7 +55,7 @@ DISTRIBUTED_ARGS="
     --master_port $MASTER_PORT
 "
 
-run_sh="/public/njllm/anaconda3/envs/hzm-qwen2-01/bin/torchrun $DISTRIBUTED_ARGS /public/njllm/hzm/code/qwen2_loss/examples/sft/finetune.py \
+run_sh="/public/njllm/anaconda3/envs/hzm-qwen2-02/bin/torchrun $DISTRIBUTED_ARGS /public/njllm/hzm/code/qwen2_loss/examples/sft/finetune.py \
     --model_name_or_path $MODEL \
     --data_path $DATA \
     --bf16 True \
@@ -93,19 +93,19 @@ echo "[SFT_DATA]: $DATA"
 
 
 # 1 generate train and test dataset with selected features
-/public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 /public/njllm/hzm/code/qwen2/ai_doctor/data/dataset_process.py --digit-to-word $DIGIT_TO_WORD --selected $SELECTED 2>&1 | tee "$SFT_OUTPUT_DIR/train_model.log"
+/public/njllm/anaconda3/envs/hzm-qwen2-02/bin/python3.9 /public/njllm/hzm/code/qwen2_loss/ai_doctor/data/dataset_process.py --digit-to-word $DIGIT_TO_WORD --selected $SELECTED 2>&1 | tee "$SFT_OUTPUT_DIR/train_model.log"
 # 2 copy dataset from ai_doctor to output_dir/source/
 mkdir -p $SFT_OUTPUT_DIR/source
-cp -r /public/njllm/hzm/code/qwen2/ai_doctor/source/*.jsonl $SFT_OUTPUT_DIR/source
+cp -r /public/njllm/hzm/code/qwen2_loss/ai_doctor/source/*.jsonl $SFT_OUTPUT_DIR/source
 
 mkdir -p $DPO_OUTPUT_DIR/source
-cp -r /public/njllm/hzm/code/qwen2/ai_doctor/source/*.jsonl $DPO_OUTPUT_DIR/source
+cp -r /public/njllm/hzm/code/qwen2_loss/ai_doctor/source/*.jsonl $DPO_OUTPUT_DIR/source
 
 # 3 sft train
 eval $run_sh 2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
 ## 4 sft test
-/public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 /public/njllm/hzm/code/qwen2/ai_doctor/test/qwen2_sft_diagnose_test.py --dir-id $DIR_ID --selected $SELECTED  2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
+/public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 /public/njllm/hzm/code/qwen2_loss/ai_doctor/test/qwen2_sft_diagnose_test.py --dir-id $DIR_ID --selected $SELECTED  2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
 ## 5 dpo train
-deepspeed --include localhost:$CUDA_IDS /public/njllm/hzm/code/qwen2/ai_doctor/dpo/main_train.py --dir_id $DIR_ID --selected $SELECTED 2>&1 | tee "$DPO_OUTPUT_DIR/train_model.log"
+deepspeed --include localhost:$CUDA_IDS /public/njllm/hzm/code/qwen2_loss/ai_doctor/dpo/main_train.py --dir_id $DIR_ID --selected $SELECTED 2>&1 | tee "$DPO_OUTPUT_DIR/train_model.log"
 # 6 dpo test
-/public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 /public/njllm/hzm/code/qwen2/ai_doctor/test/qwen2_dpo_diagnose_test.py --dir-id $DIR_ID --selected $SELECTED 2>&1 | tee -a "$DPO_OUTPUT_DIR/train_model.log"
+/public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 /public/njllm/hzm/code/qwen2_loss/ai_doctor/test/qwen2_dpo_diagnose_test.py --dir-id $DIR_ID --selected $SELECTED 2>&1 | tee -a "$DPO_OUTPUT_DIR/train_model.log"
