@@ -45,7 +45,7 @@ NNODES=${NNODES:-1}
 # The rank of this worker, should be in {0, ..., WORKER_CNT-1}, for single-worker training, please set to 0
 NODE_RANK=${NODE_RANK:-0}
 
-MASTER_ADDR="172.18.127.64"
+MASTER_ADDR="172.18.127.48"
 MASTER_PORT=6001
 # The ip address of the rank-0 worker, for single-worker training, please set to localhost
 MASTER_ADDR=${MASTER_ADDR:-localhost}
@@ -130,12 +130,16 @@ do
 
   DIR_IDS_ARR[${#DIR_IDS_ARR[@]}]=DIR_ID
 
+  if [ "$FLAG" = USE_LORA ]; then
+    echo "use_lora"
+  fi
+
   ## 4 sft test
 #  /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED  2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
   ## 5 dpo train
   deepspeed --include localhost:$CUDA_IDS $CODE_ROOT/ai_doctor/dpo/main_train.py --dir_id $DIR_ID  --selected $SELECTED 2>&1 | tee "$DPO_OUTPUT_DIR/train_model.log"
   # 6 dpo test
-  /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED 2>&1 | tee -a "$DPO_OUTPUT_DIR/train_model.log"
+#  /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED 2>&1 | tee -a "$DPO_OUTPUT_DIR/train_model.log"
 done
 # test
 for CHECK_DIR_ID in "${DIR_IDS_ARR[@]}":

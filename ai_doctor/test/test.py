@@ -59,8 +59,15 @@ for i in range(len(cm)):
 specificity = np.array(specificity)
 print(specificity)
 
-la = [1,2,34,55,6,7,55,1,2,3,4]
+la = [1, 2, 34, 55, 6, 7, 55, 1, 2, 3, 4]
 print(la.count(1))
 
-set1 = set([1,23,3])-{3}
+set1 = set([1, 23, 3]) - {3}
 print(set1)
+
+lb = [1, 2, 3]
+aaa = [(la.index(id),id) for id in lb if id in la]
+# aaa = {la.index(id):id for id in lb if id in la}
+print(aaa)
+print(aaa[0][0])
+print(aaa[0][1])

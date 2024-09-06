@@ -2,6 +2,7 @@ import os
 import json
 import yaml
 import argparse
+import torch
 from pathlib import Path
 from loguru import logger
 from transformers import AutoModelForCausalLM, AutoTokenizer
@@ -114,7 +115,7 @@ def main():
     TN = 0
     FN = 0
 
-    predicts = []
+    predicts, predict_probs = [], []
     for i in range(patient_cnt):
         # print(diagnose_test_dataset[i])
         prompt = args.prompt['finetune_diagnose_require']
@@ -132,12 +133,16 @@ def main():
         )
         model_inputs = tokenizer([text], return_tensors="pt").to(cuda)
 
-        generated_ids = model.generate(
+        output = model.generate(
             **model_inputs,
-            max_new_tokens=3512
+            max_new_tokens=100,
+            return_dict_in_generate=True,
+            # output_attentions=True,
+            output_scores=True,
+            output_logits=True,
         )
         generated_ids = [
-            output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
+            output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, output['sequences'])
         ]
 
         response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
@@ -148,6 +153,32 @@ def main():
         # response, history = model.chat(tokenizer, query=new_query, history=history)
         # label = F_T if label_info[i] else F_F
         # print(new_query)
+
+
+        response_token_ids = tokenizer(response)['input_ids']
+
+        # No: 2753, NO: 8996, no: 2152,
+        no_ids = [2753, 8996, 2152]
+        ids_detail = [{'token_id_index': response_token_ids.index(_id_), 'token_id': _id_} for _id_ in no_ids if _id_ in response_token_ids]
+        # logger.info(f'no_ids_detail: {ids_detail}')
+        if not ids_detail:
+            # Yes: 9454, YES: 14004,  yes: 9693,
+            yes_ids = [9454, 14004, 9693]
+            ids_detail = [{'token_id_index': response_token_ids.index(_id_), 'token_id': _id_} for _id_ in yes_ids if
+                          _id_ in response_token_ids]
+            # logger.info(f'yes_ids_detail: {ids_detail}')
+
+        if not ids_detail:
+            ids_detail = [{'token_id_index': response_token_ids.index(_id_), 'token_id': _id_} for _id_ in response_token_ids]
+        response_logits = [torch.softmax(logit, dim=-1) for logit in output['logits']]
+        token_id_index = ids_detail[0]['token_id_index']
+        token_id = ids_detail[0]['token_id']
+        token_logits = response_logits[token_id_index][0][token_id]
+        if token_id in no_ids:
+            token_logits = 1-token_logits
+
+        predict_probs.append(token_logits.item())
+        logger.info(f'token_id: {token_id}, token logits: {token_logits}')
 
         label = label_info[i]
         label = 1 if label else 0
@@ -191,7 +222,8 @@ def main():
     logger.info(f'特异度：{specificity}')
     logger.info(f'F1-Score：{f1}')
 
-    fpr, tpr, thresholds = roc_curve(label_info, predicts)
+    fpr, tpr, thresholds = roc_curve(label_info, predict_probs)
+    logger.info(f'thresholds: {thresholds}')
     roc_auc = auc(fpr, tpr)
     logger.info(f'false positive rate ↓ : {fpr}')
     logger.info(f'true positive rate ↑ : {tpr}')
@@ -206,7 +238,7 @@ def main():
     plt.ylabel('True Positive Rate')
     plt.title('Receiver Operating Characteristic')
     plt.legend(loc='lower right')
-    roc_path = os.path.join(args.path['dataset_dir'], 'sft_bc_roc_curve.png')
+    roc_path = os.path.join(diagnose_test_dataset_dir, 'sft_bc_roc_curve.png')
     plt.savefig(roc_path, dpi=300, bbox_inches='tight')
     # plt.show()
     logger.info(f'roc path: {roc_path}')
