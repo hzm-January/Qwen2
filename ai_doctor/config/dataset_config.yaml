@@ -11,7 +11,7 @@ train_labels: [0,1]
 test_labels: [0,1]
 dataset_name: 'yiduo'
 path:
-  dataset_dir: '/public/whr/hzm/code/qwen2/ai_doctor/source'
+  dataset_dir: '/public/njllm/hzm/code/qwen2_loss/ai_doctor/source'
   output_dir: 'data'
 file_name:
   org_data: 'patient_infos.xlsx'

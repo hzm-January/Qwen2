@@ -1,7 +1,7 @@
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
-model_name = "/public/whr/hzm/model/01-qwen-base/qwen2/qwen2-7b-instruct"
-# cache_dir = "/public/whr/hzm/model/01-qwen-base/qwen2/qwen2-7b-instruct"
+model_name = "/public/njllm/hzm/model/01-qwen-base/qwen2/qwen2-7b-instruct"
+# cache_dir = "/public/njllm/hzm/model/01-qwen-base/qwen2/qwen2-7b-instruct"
 device = "cuda"  # the device to load the model onto
 
 model = AutoModelForCausalLM.from_pretrained(

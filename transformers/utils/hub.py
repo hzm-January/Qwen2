@@ -165,8 +165,8 @@ def is_remote_url(url_or_filename):
 
 
 # TODO: remove this once fully deprecated
-# TODO? remove from './examples/research_projects/lxmert/utils.py' as well
-# TODO? remove from './examples/research_projects/visual_bert/utils.py' as well
+# TODO? remove from './examples/research_projects/lxmert/loss_utils.py' as well
+# TODO? remove from './examples/research_projects/visual_bert/loss_utils.py' as well
 @_deprecate_method(version="4.39.0", message="This method is outdated and does not support the new cache system.")
 def get_cached_models(cache_dir: Union[str, Path] = None) -> List[Tuple]:
     """

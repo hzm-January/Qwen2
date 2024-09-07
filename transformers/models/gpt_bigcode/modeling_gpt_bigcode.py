@@ -1109,7 +1109,7 @@ class GPTBigCodeForCausalLM(GPTBigCodePreTrainedModel):
     def _get_initial_cache_position(self, input_ids, model_kwargs):
         """
         Calculates `cache_position` for the pre-fill stage based on `input_ids` and optionally past length.
-        Since gpt bigcode is special, the method is overridden here, other models use it from `generation.utils.py`.
+        Since gpt bigcode is special, the method is overridden here, other models use it from `generation.loss_utils.py`.
         """
         past_length = 0
         if "past_key_values" in model_kwargs:

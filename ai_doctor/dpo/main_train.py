@@ -48,7 +48,7 @@ def initial_args():
     # dir_id = command_args.dir_id
 
     args.model_name_or_path = os.path.join(args.model_name_or_path, args.dir_id)
-    # args.train_args_path = '/public/whr/hzm/code/qwen2/ai_doctor/dpo/train_args/dpo/dpo_config.py'
+    # args.train_args_path = '/public/njllm/hzm/code/qwen2_loss/ai_doctor/dpo/train_args/dpo/dpo_config.py'
     if args.selected:
         args.train_data_path = os.path.join(args.train_data_path, args.dir_id, 'source', 'dpo_fs_train_data.jsonl')
     else:

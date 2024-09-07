@@ -116,7 +116,7 @@ do
       "
 
   # 1 generate train and test dataset with selected features
-  /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $CODE_ROOT/ai_doctor/data/dataset_process.py --digit-to-word $DIGIT_TO_WORD --cls $CLS --selected $SELECTED 2>&1 | tee "$SFT_OUTPUT_DIR/train_model.log"
+  /public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $CODE_ROOT/ai_doctor/data/dataset_process.py --digit-to-word $DIGIT_TO_WORD --cls $CLS --selected $SELECTED 2>&1 | tee "$SFT_OUTPUT_DIR/train_model.log"
   # 2 copy dataset from ai_doctor to output_dir/source/
   mkdir -p $SFT_OUTPUT_DIR/source
   cp -r $CODE_ROOT/ai_doctor/source/*.jsonl $SFT_OUTPUT_DIR/source
@@ -135,11 +135,11 @@ do
   fi
 
   ## 4 sft test
-#  /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED  2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
+#  /public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED  2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
   ## 5 dpo train
   deepspeed --include localhost:$CUDA_IDS $CODE_ROOT/ai_doctor/dpo/main_train.py --dir_id $DIR_ID  --selected $SELECTED 2>&1 | tee "$DPO_OUTPUT_DIR/train_model.log"
   # 6 dpo test
-#  /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED 2>&1 | tee -a "$DPO_OUTPUT_DIR/train_model.log"
+#  /public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED 2>&1 | tee -a "$DPO_OUTPUT_DIR/train_model.log"
 done
 # test
 for CHECK_DIR_ID in "${DIR_IDS_ARR[@]}":
@@ -148,7 +148,7 @@ do
   CHECK_SFT_OUTPUT_DIR="$MODEL_ROOT/qwen2-sft/$CHECK_DIR_ID"
   CHECK_DPO_OUTPUT_DIR="$MODEL_ROOT/qwen2-dpo/$CHECK_DIR_ID"
   ## 4 sft test
-  /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $CHECK_DIR_ID --selected $SELECTED 2>&1 | tee -a "$CHECK_SFT_OUTPUT_DIR/train_model.log"
+  /public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $CHECK_DIR_ID --selected $SELECTED 2>&1 | tee -a "$CHECK_SFT_OUTPUT_DIR/train_model.log"
   # 6 dpo test
-  /public/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $CHECK_DIR_ID --selected $SELECTED 2>&1 | tee -a "$CHECK_DPO_OUTPUT_DIR/train_model.log"
+  /public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $CHECK_DIR_ID --selected $SELECTED 2>&1 | tee -a "$CHECK_DPO_OUTPUT_DIR/train_model.log"
 done

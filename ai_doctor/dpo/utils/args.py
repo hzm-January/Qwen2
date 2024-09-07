@@ -24,11 +24,11 @@ class TrainMode(Enum):
 class TrainArgPath(Enum):
     SFT_LORA_QLORA_BASE = 'train_args/sft/lora_qlora/base.py'
     DPO_LORA_QLORA_BASE = 'train_args/dpo/dpo_config.py'
-    # TRAIN_DATASET_PATH = '/public/whr/hzm/code/qwen2/ai_doctor/source/dpo_fs_train_data.jsonl'
-    # TRAIN_DATASET_PATH = '/public/whr/hzm/code/qwen2/ai_doctor/source/dpo_train_data.jsonl'
-    TRAIN_DATASET_PATH = '/public/whr/hzm/model/qwen2-dpo'
-    # MODLE_PATH = f'/public/whr/hzm/model/qwen2-sft/{dir_id}'
-    MODLE_PATH = f'/public/whr/hzm/model/qwen2-sft'
+    # TRAIN_DATASET_PATH = '/public/njllm/hzm/code/qwen2_loss/ai_doctor/source/dpo_fs_train_data.jsonl'
+    # TRAIN_DATASET_PATH = '/public/njllm/hzm/code/qwen2_loss/ai_doctor/source/dpo_train_data.jsonl'
+    TRAIN_DATASET_PATH = '/public/njllm/hzm/model/qwen2-dpo'
+    # MODLE_PATH = f'/public/njllm/hzm/model/qwen2-sft/{dir_id}'
+    MODLE_PATH = f'/public/njllm/hzm/model/qwen2-sft'
     TASK_TYPE = 'dpo_multi'
 
 

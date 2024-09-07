@@ -17,7 +17,7 @@ class TrainArgument(DPOConfig):
     """
     训练参数, 直接在这里修改default即可
     """
-    output_dir: str = field(default='/public/whr/hzm/model/qwen2-dpo', metadata={"help": "模型训练完成后的保存路径"})
+    output_dir: str = field(default='/public/njllm/hzm/model/qwen2-dpo', metadata={"help": "模型训练完成后的保存路径"})
     num_train_epochs: int = field(default=5, metadata={"help": "训练轮次"})
     per_device_train_batch_size: int = field(default=1, metadata={"help": "训练的batch size"})
     gradient_checkpointing: bool = field(default=True, metadata={"help": "是否使用梯度累计"})
@@ -51,7 +51,7 @@ class TrainArgument(DPOConfig):
     fp16: bool = field(default=False, metadata={"help": "Whether to use fp16 (mixed) precision instead of 32-bit"})
 
     # Deepspeed训练相关参数，不使用时设置为default=None
-    deepspeed: Optional[str] = field(default='/public/whr/hzm/code/qwen2/ai_doctor/dpo/train_args/deepspeed_config/ds_config_zero2.json',
+    deepspeed: Optional[str] = field(default='/public/njllm/hzm/code/qwen2_loss/ai_doctor/dpo/train_args/deepspeed_config/ds_config_zero2.json',
                                      metadata={"help": "启用Deepspeed时需要的config文件"})
     # ---------------------------------------------------------------------------------------------------------------------
     # 上面参数是常规TrainingArguments设置，下面参数则是dpo配置参数。下面为DPOConfig默认配置。
