@@ -23,9 +23,9 @@ def load_config():
     parser.add_argument("--cls", type=str, default="multiple")
     parser.add_argument("--selected", type=int, default=0)
     parser.add_argument('--ds_config', type=str,
-                        default='/public/njllm/hzm/code/qwen2_loss/ai_doctor/config/dataset_config.yaml')
+                        default='/data/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--ft_config', type=str,
-                        default='/public/njllm/hzm/code/qwen2_loss/ai_doctor/config/finetune_config.yaml')
+                        default='/data/whr/hzm/code/qwen2/ai_doctor/config/finetune_config.yaml')
     args = parser.parse_args()
 
     if not os.path.exists(args.ds_config):

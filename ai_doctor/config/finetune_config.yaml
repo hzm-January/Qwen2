@@ -1,5 +1,5 @@
 ft_path:
-  model_root_dir: '/public/njllm/hzm/model'
-  base_model_dir: '/public/njllm/hzm/model/qwen2-base/qwen2/qwen2-7b-instruct'
-  sft_model_dir: '/public/njllm/hzm/model/qwen2-sft'
-  dpo_model_dir: '/public/njllm/hzm/model/qwen2-dpo'
+  model_root_dir: '/data/whr/hzm/model'
+  base_model_dir: '/data/whr/hzm/model/qwen2-base/qwen2/qwen2-7b-instruct'
+  sft_model_dir: '/data/whr/hzm/model/qwen2-sft'
+  dpo_model_dir: '/data/whr/hzm/model/qwen2-dpo'

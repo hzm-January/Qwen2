@@ -17,7 +17,7 @@ Q_LORA=False
 SELECTED=0
 DIGIT_TO_WORD=1
 
-ROOT="/public/whr"
+ROOT="/data/whr"
 CODE_ROOT="$ROOT/hzm/code/qwen2"
 MODEL_ROOT="$ROOT/hzm/model"
 MODEL="$MODEL_ROOT/qwen2-base/qwen2/qwen2-7b-instruct"
@@ -27,7 +27,7 @@ MODEL="$MODEL_ROOT/qwen2-base/qwen2/qwen2-7b-instruct"
 
 DS_CONFIG_PATH="$CODE_ROOT/examples/sft/ds_config_zero3.json"
 
-export PATH=/usr/local/cuda-12.1/bin:$PATH
+export PATH=/data/whr/cuda/cuda-12.1/bin:$PATH
 
 # Guide:
 # This script supports distributed training on multi-gpu workers (as well as single-worker training).
@@ -45,7 +45,7 @@ NNODES=${NNODES:-1}
 # The rank of this worker, should be in {0, ..., WORKER_CNT-1}, for single-worker training, please set to 0
 NODE_RANK=${NODE_RANK:-0}
 
-MASTER_ADDR="172.18.127.48"
+MASTER_ADDR="172.18.30.23"
 MASTER_PORT=6001
 # The ip address of the rank-0 worker, for single-worker training, please set to localhost
 MASTER_ADDR=${MASTER_ADDR:-localhost}
@@ -85,7 +85,7 @@ do
   "
 
   run_sh="CUDA_VISIBLE_DEVICES=$CUDA_IDS \
-      $ROOT/anaconda3/envs/hzm-qwen2-01/bin/torchrun \
+      $ROOT/anaconda3/envs/hzm-qwen2/bin/torchrun \
       $DISTRIBUTED_ARGS \
       $CODE_ROOT/examples/sft/finetune.py \
       --model_name_or_path $MODEL \
@@ -116,7 +116,7 @@ do
       "
 
   # 1 generate train and test dataset with selected features
-  /public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $CODE_ROOT/ai_doctor/data/dataset_process.py --digit-to-word $DIGIT_TO_WORD --cls $CLS --selected $SELECTED 2>&1 | tee "$SFT_OUTPUT_DIR/train_model.log"
+  /data/whr/anaconda3/envs/hzm-qwen2/bin/python3.9 $CODE_ROOT/ai_doctor/data/dataset_process.py --digit-to-word $DIGIT_TO_WORD --cls $CLS --selected $SELECTED 2>&1 | tee "$SFT_OUTPUT_DIR/train_model.log"
   # 2 copy dataset from ai_doctor to output_dir/source/
   mkdir -p $SFT_OUTPUT_DIR/source
   cp -r $CODE_ROOT/ai_doctor/source/*.jsonl $SFT_OUTPUT_DIR/source
@@ -128,27 +128,35 @@ do
   echo "[run_sh]: $run_sh"
   eval $run_sh 2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
 
-  DIR_IDS_ARR[${#DIR_IDS_ARR[@]}]=DIR_ID
+#  DIR_IDS_ARR[${#DIR_IDS_ARR[@]}]=$DIR_ID
+  DIR_IDS_ARR+=($DIR_ID)
 
-  if [ "$FLAG" = USE_LORA ]; then
-    echo "use_lora"
-  fi
+#  if [ "$FLAG" = USE_LORA ]; then
+#    echo "use_lora"
+#  fi
 
   ## 4 sft test
-#  /public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED  2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
+#  /data/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED  2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
   ## 5 dpo train
   deepspeed --include localhost:$CUDA_IDS $CODE_ROOT/ai_doctor/dpo/main_train.py --dir_id $DIR_ID  --selected $SELECTED 2>&1 | tee "$DPO_OUTPUT_DIR/train_model.log"
   # 6 dpo test
-#  /public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED 2>&1 | tee -a "$DPO_OUTPUT_DIR/train_model.log"
+#  /data/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED 2>&1 | tee -a "$DPO_OUTPUT_DIR/train_model.log"
 done
+echo "${DIR_IDS_ARR[@]}"
 # test
-for CHECK_DIR_ID in "${DIR_IDS_ARR[@]}":
+for CHECK_DIR_ID in "${DIR_IDS_ARR[@]}"
 do
-  echo ${CHECK_DIR_ID}
-  CHECK_SFT_OUTPUT_DIR="$MODEL_ROOT/qwen2-sft/$CHECK_DIR_ID"
-  CHECK_DPO_OUTPUT_DIR="$MODEL_ROOT/qwen2-dpo/$CHECK_DIR_ID"
+  echo "$CHECK_DIR_ID"
+  SFT_OUTPUT_DIR="$MODEL_ROOT/qwen2-sft/$CHECK_DIR_ID"
+  DPO_OUTPUT_DIR="$MODEL_ROOT/qwen2-dpo/$CHECK_DIR_ID"
+
+  SFT_TRAIN_DATA=$([ "$SELECTED" -eq 1 ] && echo "$SFT_OUTPUT_DIR/source/sft_fs_train_data.jsonl" || echo "$SFT_OUTPUT_DIR/source/sft_train_data.jsonl")
+  SFT_TEST_FILE_PATH=$([ "$CLS" = "single" ] && echo "$CODE_ROOT/ai_doctor/test/qwen2_sft_diagnose_test.py" || echo "$CODE_ROOT/ai_doctor/test/qwen2_sft_diagnose_test_multi_class.py")
+  DPO_TEST_FILE_PATH=$([ "$CLS" = "single" ] && echo "$CODE_ROOT/ai_doctor/test/qwen2_dpo_diagnose_test.py" || echo "$CODE_ROOT/ai_doctor/test/qwen2_dpo_diagnose_test_multi_class.py")
+
   ## 4 sft test
-  /public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $CHECK_DIR_ID --selected $SELECTED 2>&1 | tee -a "$CHECK_SFT_OUTPUT_DIR/train_model.log"
+  /data/whr/anaconda3/envs/hzm-qwen2/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $CHECK_DIR_ID --selected $SELECTED 2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
   # 6 dpo test
-  /public/njllm/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $CHECK_DIR_ID --selected $SELECTED 2>&1 | tee -a "$CHECK_DPO_OUTPUT_DIR/train_model.log"
+  /data/whr/anaconda3/envs/hzm-qwen2/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $CHECK_DIR_ID --selected $SELECTED 2>&1 | tee -a "$DPO_OUTPUT_DIR/train_model.log"
 done
+echo "${DIR_IDS_ARR[@]}"

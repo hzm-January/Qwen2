@@ -3,7 +3,7 @@ export CUDA_DEVICE_MAX_CONNECTIONS=1
 export CUDA_VISIBLE_DEVICES=0,1,2,3,4,5,6,7
 
 DIR_ID=$(date '+%Y%m%d-%H%M%S')
-OUTPUT_DIR="/public/njllm/hzm/model/qwen2-sft/$DIR_ID"
+OUTPUT_DIR="/data/whr/hzm/model/qwen2-sft/$DIR_ID"
 
 # Guide:
 # This script supports distributed training on multi-gpu workers (as well as single-worker training).

@@ -13,9 +13,9 @@ from transformers.generation import GenerationConfig
 from matplotlib.font_manager import FontProperties
 from matplotlib import font_manager
 
-column_name_json = '/public/njllm/hzm/code/qwen2_loss/ai_doctor/source/patient_infos_column_name_0_1_2.json'
+column_name_json = '/data/whr/hzm/code/qwen2/ai_doctor/source/patient_infos_column_name_0_1_2.json'
 
-generation_config_dir = '/public/njllm/hzm/code/qwen2_loss/ai_doctor/feature_select/'
+generation_config_dir = '/data/whr/hzm/code/qwen2/ai_doctor/feature_select/'
 
 cuda = "cuda:7"
 
@@ -25,9 +25,9 @@ def load_config():
     parser.add_argument("--dir-id", type=str, default="20240830-130948")
     parser.add_argument("--cls", type=str, default="single")
     parser.add_argument('--ds_config', type=str,
-                        default='/public/njllm/hzm/code/qwen2_loss/ai_doctor/config/dataset_config.yaml')
+                        default='/data/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--ft_config', type=str,
-                        default='/public/njllm/hzm/code/qwen2_loss/ai_doctor/config/finetune_config.yaml')
+                        default='/data/whr/hzm/code/qwen2/ai_doctor/config/finetune_config.yaml')
     args = parser.parse_args()
 
     if not os.path.exists(args.ds_config):

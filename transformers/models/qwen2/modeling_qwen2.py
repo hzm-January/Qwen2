@@ -46,8 +46,8 @@ from ...utils import (
     replace_return_docstrings,
 )
 from .configuration_qwen2 import Qwen2Config
-# from .loss.focal_loss import FocalLoss
-from .focal_loss import FocalLoss
+# from .focal_loss import FocalLoss
+from .focal_loss_simple import FocalLoss
 
 if is_flash_attn_2_available():
     from ...modeling_flash_attention_utils import _flash_attention_forward
@@ -1125,8 +1125,8 @@ class Qwen2ForCausalLM(Qwen2PreTrainedModel):
             shift_logits = logits[..., :-1, :].contiguous()
             shift_labels = labels[..., 1:].contiguous()
             # Flatten the tokens
-            # loss_fct = CrossEntropyLoss()
-            loss_fct = FocalLoss(gamma=2.0)
+            loss_fct = CrossEntropyLoss()
+            # loss_fct = FocalLoss(gamma=2.0)
             shift_logits = shift_logits.view(-1, self.config.vocab_size)
             shift_labels = shift_labels.view(-1)
             # Enable model parallelism
