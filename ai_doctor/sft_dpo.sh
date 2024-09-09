@@ -3,7 +3,7 @@ export CUDA_DEVICE_MAX_CONNECTIONS=1
 
 CUDA_IDS=0,1,2,3,4,5,6,7
 GPUS_PER_NODE=8
-CLS="single"
+CLS="multiple"
 
 #DPO_CUDA_IDS=0,1,2,3,4,5,6
 #CUDA_IDS=0,2,5,6,7
@@ -14,7 +14,7 @@ CLS="single"
 
 USE_LORA=False
 Q_LORA=False
-SELECTED=0
+SELECTED=1
 DIGIT_TO_WORD=1
 
 ROOT="/data/whr"

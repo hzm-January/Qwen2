@@ -16,7 +16,7 @@ import random
 def load_config():
     parser = argparse.ArgumentParser()
     parser.add_argument('--cls', type=str, default='single')
-    parser.add_argument('--selected', type=int, default=0)
+    parser.add_argument('--selected', type=int, default=1)
     parser.add_argument('--digit-to-word', type=int, default=1)
     parser.add_argument('--config', type=str, default='/data/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--output_dir', type=str, default='Single')
@@ -285,7 +285,7 @@ def preprocess_feature_select(args, df):
     # ]
     # df = df[top_k[:11]]  # include label
     # top 60 keys
-    top_k = df[[
+    top_k = [
         "label",
         "性别",
         "幼年时家庭经济状况",
@@ -348,8 +348,8 @@ def preprocess_feature_select(args, df):
         "Corneal volume in a 3mm diameter zone around the corneal apex",
         "Integrated radius",
 
-    ]]
-    df = df[top_k[:11]]  # include label
+    ]
+    df = df[top_k[:61]]  # include label
     # Top 40 keys
     # df = df[[
     #     "性别",

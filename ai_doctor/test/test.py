@@ -71,3 +71,8 @@ aaa = [(la.index(id),id) for id in lb if id in la]
 print(aaa)
 print(aaa[0][0])
 print(aaa[0][1])
+
+if not lb:
+    print('lb not')
+else:
+    print('lb ok')
