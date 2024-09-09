@@ -12,7 +12,6 @@ from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 from sklearn.preprocessing import label_binarize
-import torch
 
 cuda = 'cuda:1'
 class_num = 4
@@ -104,7 +103,7 @@ def main():
 
     correct = [0] * class_num
 
-    predicts, scores = [], []
+    predicts = []
     label_cnt = [0] * class_num
     for i in range(patient_cnt):
         # print(diagnose_test_dataset[i])
@@ -123,16 +122,12 @@ def main():
         )
         model_inputs = tokenizer([text], return_tensors="pt").to(cuda)
 
-        output = model.generate(
+        generated_ids = model.generate(
             **model_inputs,
-            max_new_tokens=100,
-            return_dict_in_generate=True,
-            # output_attentions=True,
-            output_scores=True,
-            output_logits=True,
+            max_new_tokens=100
         )
         generated_ids = [
-            output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, output['sequences'])
+            output_ids[len(input_ids):] for input_ids, output_ids in zip(model_inputs.input_ids, generated_ids)
         ]
 
         response = tokenizer.batch_decode(generated_ids, skip_special_tokens=True)[0]
@@ -143,9 +138,6 @@ def main():
         # response, history = model.chat(tokenizer, query=new_query, history=history)
         # label = F_T if label_info[i] else F_F
         # print(new_query)
-
-        response_token_ids = tokenizer(response.lower())['input_ids']
-        response_logits = [torch.softmax(logit, dim=-1) for logit in output['logits']]
 
         label = label_info[i]
 
@@ -160,48 +152,21 @@ def main():
         #     predict = 0
         # else:
         #     logger.warning(f'Error response : {response}')
-        response_lower = response.lower()
-        ff_token_ids = []
-        if "forme fruste" in response_lower:
+
+        if "forme fruste" in response:
             predict = 1
-            ff_token_ids = tokenizer('forme fruste')['input_ids']
-        elif "subclinical" in response_lower:
+        elif "subclinical" in response:
             predict = 2
-            ff_token_ids = tokenizer('subclinical')['input_ids']
-        elif "clinical" in response_lower:
+        elif "clinical" in response:
             predict = 3
-            ff_token_ids = tokenizer('clinical')['input_ids']
-        elif "no" in response_lower:
+        elif "No" in response:
             predict = 0
-            no_ids = [2753, 8996, 2152]
-            ids_detail = [_id_ for _id_ in no_ids if
-                          _id_ in response_token_ids]
-            if ids_detail: ff_token_ids = [ids_detail[0]]
         else:
-            logger.warning(f'Error response : {response_lower}')
+            logger.warning(f'Error response : {response}')
 
-        logits_classes = [0.0] * class_num
-        if ff_token_ids:
-            logits = 0.0
-            ff_token_ids_len = len(ff_token_ids)
-            start_i = -1
-            for j in range(len(response_token_ids) - ff_token_ids_len + 1):
-                if response_token_ids[j:j + ff_token_ids_len] == ff_token_ids:
-                    start_i = j
-                    break
-            # ff_logits = response_logits[start_i: start_i+ff_token_ids_len][0][ff_token_ids]
-
-            for i, token_id in enumerate(ff_token_ids):
-                logits += response_logits[i + start_i][0][token_id].item()
-            logits = logits / ff_token_ids_len
-        else:
-            logits = 1e-8
-
-        logger.info(f"id: {i}, predict: {predict}, label: {label}, scores: {logits}")
+        logger.info(f"id: {i}, predict: {predict}, label: {label}")
 
         predicts.append(predict)
-        logits_classes[predict] = logits
-        scores.append(logits_classes)
 
         if label == predict: correct[label] += 1
 
@@ -248,8 +213,8 @@ def main():
 
     # Binarize the output (one-hot encoding)
     y_test_bin = label_binarize(predicts, classes=list(range(class_num)))
-    # y_score_bin = label_binarize(scores, classes=list(range(class_num)))
-    y_score_bin = np.array(scores)
+    y_score_bin = label_binarize(label_info, classes=list(range(class_num)))
+
     fpr = dict()
     tpr = dict()
     roc_auc = dict()
@@ -262,8 +227,6 @@ def main():
     fpr["micro"], tpr["micro"], _ = roc_curve(y_test_bin.ravel(), y_score_bin.ravel())
     roc_auc["micro"] = auc(fpr["micro"], tpr["micro"])
 
-    logger.info(f'roc_auc_micro: {roc_auc["micro"]}')
-
     # Macro-average ROC curve and ROC area
     all_fpr = np.unique(np.concatenate([fpr[i] for i in range(class_num)]))
     mean_tpr = np.zeros_like(all_fpr)
@@ -274,8 +237,6 @@ def main():
     fpr["macro"] = all_fpr
     tpr["macro"] = mean_tpr
     roc_auc["macro"] = auc(fpr["macro"], tpr["macro"])
-
-    logger.info(f'roc_auc_macro: {roc_auc["macro"]}')
 
     plt.figure()
     plt.plot(fpr["micro"], tpr["micro"], color='deeppink', linestyle=':', linewidth=4,
