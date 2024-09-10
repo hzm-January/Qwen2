@@ -3,7 +3,7 @@ export CUDA_DEVICE_MAX_CONNECTIONS=1
 
 CUDA_IDS=0,1,2,3,4,5,6,7
 GPUS_PER_NODE=8
-CLS="multiple"
+CLS="single"
 
 #DPO_CUDA_IDS=0,1,2,3,4,5,6
 #CUDA_IDS=0,2,5,6,7
@@ -136,27 +136,27 @@ do
 #  fi
 
   ## 4 sft test
-#  /data/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED  2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
+  /data/whr/anaconda3/envs/hzm-qwen2/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED  2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
   ## 5 dpo train
   deepspeed --include localhost:$CUDA_IDS $CODE_ROOT/ai_doctor/dpo/main_train.py --dir_id $DIR_ID  --selected $SELECTED 2>&1 | tee "$DPO_OUTPUT_DIR/train_model.log"
   # 6 dpo test
-#  /data/whr/anaconda3/envs/hzm-qwen2-01/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED 2>&1 | tee -a "$DPO_OUTPUT_DIR/train_model.log"
+  /data/whr/anaconda3/envs/hzm-qwen2/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $DIR_ID --selected $SELECTED 2>&1 | tee -a "$DPO_OUTPUT_DIR/train_model.log"
 done
 echo "${DIR_IDS_ARR[@]}"
 # test
-for CHECK_DIR_ID in "${DIR_IDS_ARR[@]}"
-do
-  echo "$CHECK_DIR_ID"
-  SFT_OUTPUT_DIR="$MODEL_ROOT/qwen2-sft/$CHECK_DIR_ID"
-  DPO_OUTPUT_DIR="$MODEL_ROOT/qwen2-dpo/$CHECK_DIR_ID"
-
-  SFT_TRAIN_DATA=$([ "$SELECTED" -eq 1 ] && echo "$SFT_OUTPUT_DIR/source/sft_fs_train_data.jsonl" || echo "$SFT_OUTPUT_DIR/source/sft_train_data.jsonl")
-  SFT_TEST_FILE_PATH=$([ "$CLS" = "single" ] && echo "$CODE_ROOT/ai_doctor/test/qwen2_sft_diagnose_test.py" || echo "$CODE_ROOT/ai_doctor/test/qwen2_sft_diagnose_test_multi_class.py")
-  DPO_TEST_FILE_PATH=$([ "$CLS" = "single" ] && echo "$CODE_ROOT/ai_doctor/test/qwen2_dpo_diagnose_test.py" || echo "$CODE_ROOT/ai_doctor/test/qwen2_dpo_diagnose_test_multi_class.py")
-
-  ## 4 sft test
-  /data/whr/anaconda3/envs/hzm-qwen2/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $CHECK_DIR_ID --selected $SELECTED 2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
-  # 6 dpo test
-  /data/whr/anaconda3/envs/hzm-qwen2/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $CHECK_DIR_ID --selected $SELECTED 2>&1 | tee -a "$DPO_OUTPUT_DIR/train_model.log"
-done
-echo "${DIR_IDS_ARR[@]}"
+#for CHECK_DIR_ID in "${DIR_IDS_ARR[@]}"
+#do
+#  echo "$CHECK_DIR_ID"
+#  SFT_OUTPUT_DIR="$MODEL_ROOT/qwen2-sft/$CHECK_DIR_ID"
+#  DPO_OUTPUT_DIR="$MODEL_ROOT/qwen2-dpo/$CHECK_DIR_ID"
+#
+#  SFT_TRAIN_DATA=$([ "$SELECTED" -eq 1 ] && echo "$SFT_OUTPUT_DIR/source/sft_fs_train_data.jsonl" || echo "$SFT_OUTPUT_DIR/source/sft_train_data.jsonl")
+#  SFT_TEST_FILE_PATH=$([ "$CLS" = "single" ] && echo "$CODE_ROOT/ai_doctor/test/qwen2_sft_diagnose_test.py" || echo "$CODE_ROOT/ai_doctor/test/qwen2_sft_diagnose_test_multi_class.py")
+#  DPO_TEST_FILE_PATH=$([ "$CLS" = "single" ] && echo "$CODE_ROOT/ai_doctor/test/qwen2_dpo_diagnose_test.py" || echo "$CODE_ROOT/ai_doctor/test/qwen2_dpo_diagnose_test_multi_class.py")
+#
+#  ## 4 sft test
+#  /data/whr/anaconda3/envs/hzm-qwen2/bin/python3.9 $SFT_TEST_FILE_PATH --dir-id $CHECK_DIR_ID --selected $SELECTED 2>&1 | tee -a "$SFT_OUTPUT_DIR/train_model.log"
+#  # 6 dpo test
+#  /data/whr/anaconda3/envs/hzm-qwen2/bin/python3.9 $DPO_TEST_FILE_PATH --dir-id $CHECK_DIR_ID --selected $SELECTED 2>&1 | tee -a "$DPO_OUTPUT_DIR/train_model.log"
+#done
+#echo "${DIR_IDS_ARR[@]}"

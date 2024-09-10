@@ -8,7 +8,7 @@ binary_class: True
 train_dataset_ratio: 0.8
 test_dataset_ratio: 0.2
 train_labels: [0,1,2,3]
-test_labels: [0,1,2,3]
+test_labels: [0,1]
 dataset_name: 'yiduo'
 path:
   dataset_dir: '/data/whr/hzm/code/qwen2/ai_doctor/source'

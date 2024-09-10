@@ -25,7 +25,7 @@
 INT_MAX = 9999999999
 INT_MIN = -9999999999
 FLAG_NORM = "normality"  # "正常"
-FLAG_MILD_ABNORM, FLAG_MODERATE_ABNORM, FLAG_SEVERE_ABNORM = "abnormality"  # "异常"
+FLAG_ABNORM = "abnormality"  # "异常"
 FLAG_MILD_ABNORM = "mild abnormality"  # "轻度异常"
 FLAG_MODERATE_ABNORM = "moderate abnormality"  # "中度异常"
 FLAG_SEVERE_ABNORM = "severe abnormality"  # "重度异常"

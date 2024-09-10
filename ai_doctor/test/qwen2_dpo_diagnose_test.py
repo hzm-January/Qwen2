@@ -126,7 +126,8 @@ def main():
     TN = 0
     FN = 0
 
-    predicts,predict_probs = [],[]
+    predicts, predict_probs = [],[]
+    acc_predicts, acc_labels = [0, 0], [0, 0]
     for i in range(patient_cnt):
 
         # print(diagnose_test_dataset[i])
@@ -201,6 +202,10 @@ def main():
 
         predicts.append(predict)
 
+        if predict == label:
+            acc_predicts[predict] += 1
+        acc_labels[label] += 1
+
         if label == predict: correct += 1
 
         if label == F_T and predict == F_T:
@@ -227,6 +232,12 @@ def main():
     # f1_ = 2*precision*recall/(precision+recall)
     logger.info(f'labels : {label_info}')
     logger.info(f'probs: {predict_probs}')
+
+    logger.info(f'acc_labels: {acc_labels}')
+    logger.info(f'acc_predicts: {acc_predicts}')
+
+    logger.info(f'0 acc: {acc_predicts[0]/acc_labels[0] if acc_labels[0] != 0 else 0}')
+    logger.info(f'1 acc: {acc_predicts[1]/acc_labels[1] if acc_labels[1] != 0 else 0}')
 
     f1 = 2 * TP / (2 * TP + FP + FN)
     logger.info(f'TP: {TP}, FP: {FP}, TN: {TN}, FN: {FN}')
