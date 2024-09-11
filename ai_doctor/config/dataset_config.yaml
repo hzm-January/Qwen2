@@ -1,7 +1,7 @@
 table_ids: [ 0,1,2 ]
 label_ids: [ 0,1,2,3 ]
 shuffle: True
-tune_hyperparams: True
+tune_hyperparams: False
 seed: 42
 label_column_name: '0= N 1=FFKC 2=SKC 3=CKC'
 binary_class: True

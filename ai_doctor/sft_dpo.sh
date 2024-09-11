@@ -15,7 +15,7 @@ CLS="single"
 USE_LORA=False
 Q_LORA=False
 SELECTED=1
-DIGIT_TO_WORD=1
+DIGIT_TO_WORD=0
 
 ROOT="/data/whr"
 CODE_ROOT="$ROOT/hzm/code/qwen2"

@@ -57,9 +57,9 @@ def note_template(args, dataset):
     dataset['test'] = dataset['test'][dataset['test']['label'].isin(args.test_labels)]
     test_dataset = dataset['test'].loc[:, dataset['test'].columns != 'label']
     test_labels = dataset['test']['label'].values.tolist()
-    train_notes = train_dataset.apply(lambda row: ', '.join(f"{c} is {row[c]}" for c in train_dataset.columns),
+    train_notes = train_dataset.apply(lambda row: ' '.join(f"{c} is {row[c]}" for c in train_dataset.columns),
                                       axis=1).tolist()
-    test_notes = test_dataset.apply(lambda row: ', '.join(f"{c} is {row[c]}" for c in test_dataset.columns),
+    test_notes = test_dataset.apply(lambda row: ' '.join(f"{c} is {row[c]}" for c in test_dataset.columns),
                                     axis=1).tolist()
 
     # 1 sft
@@ -513,33 +513,39 @@ def preprocess_digit(args, df):  # digit to word
     def replace_with_description(x, threshold, discriminator):
 
         if discriminator == DSMTR_LT:  # <
-            if threshold < 0.1:
-                bins = [threshold + threshold * 5, threshold + threshold * 10, threshold + threshold * 15]
-            elif threshold < 100:
-                bins = [threshold + 5, threshold + 10, threshold + 15]
-            else:
-                bins = [threshold + 50, threshold + 100, threshold + 200]
+            # if threshold < 0.1:
+            #     bins = [threshold + threshold * 5, threshold + threshold * 10, threshold + threshold * 15]
+            # elif threshold < 100:
+            #     bins = [threshold + 5, threshold + 10, threshold + 15]
+            # else:
+            #     bins = [threshold + 50, threshold + 100, threshold + 200]
             # bins = threshold if threshold < 1 and isinstance(threshold, float) else [threshold-10,threshold,threshold+10]
 
-            # return (f'{x} (greater than {threshold} and less than or equal to {bins[0]} is mildly abnormal, '
-            #         f'greater than {bins[0]} and less than or equal to {bins[1]} is moderately abnormal, '
-            #         f'and greater than {bins[2]} is severely abnormal)')
+            # return (
+            #     f'{x} (less than {threshold} is normal, greater than or equal to {threshold} and less than {bins[0]} is mildly abnormal, '
+            #     f'greater than or equal to {bins[0]} and less than {bins[1]} is moderately abnormal, '
+            #     f'and greater than or equal to {bins[1]} is severely abnormal)')
+
             return (
-                f'{x} (less than {threshold} is normal, greater than or equal to {threshold} and less than {bins[0]} is mildly abnormal, '
-                f'greater than or equal to {bins[0]} and less than {bins[1]} is moderately abnormal, '
-                f'and greater than or equal to {bins[1]} is severely abnormal)')
+                f'{x} (less than {threshold} is normal, greater than or equal to {threshold} is abnormal.'
+                f'the larger the value, the more abnormal it tends to be.')
+                # 'and the smaller the value, the more normal it tends to be.'
         else:
-            if threshold < 0.1:
-                bins = [threshold - threshold * 5, threshold - threshold * 10, threshold - threshold * 15]
-            elif threshold < 100:
-                bins = [threshold - 5, threshold - 10, threshold - 15]
-            else:
-                bins = [threshold - 50, threshold - 100, threshold - 150]
-            # bins = threshold if threshold < 1 and isinstance(threshold, float) else [threshold-10,threshold,threshold+10]
+            # if threshold < 0.1:
+            #     bins = [threshold - threshold * 5, threshold - threshold * 10, threshold - threshold * 15]
+            # elif threshold < 100:
+            #     bins = [threshold - 5, threshold - 10, threshold - 15]
+            # else:
+            #     bins = [threshold - 50, threshold - 100, threshold - 150]
+            # # bins = threshold if threshold < 1 and isinstance(threshold, float) else [threshold-10,threshold,threshold+10]
+            # return (
+            #     f'{x} (greater than or equal to {threshold} is normal, less than {threshold} and greater than or equal to {bins[0]} is mildly abnormal, '
+            #     f'less than {bins[0]} and greater than or equal to {bins[1]} is moderately abnormal, '
+            #     f'and less than {bins[1]} is severely abnormal)')
             return (
-                f'{x} (greater than or equal to {threshold} is normal, less than {threshold} and greater than or equal to {bins[0]} is mildly abnormal, '
-                f'less than {bins[0]} and greater than or equal to {bins[1]} is moderately abnormal, '
-                f'and less than {bins[1]} is severely abnormal)')
+                    f'{x} (greater than {threshold} is normal, less than or equal to {threshold} is abnormal.'
+                    f'the smaller the value, the more abnormal it tends to be.')
+            # 'and the larger the value, the more normal it tends to be.'
 
     # substitute digit to word
     for k, v in rule_yiduo.items():
