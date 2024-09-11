@@ -16,7 +16,7 @@ import random
 def load_config():
     parser = argparse.ArgumentParser()
     parser.add_argument('--cls', type=str, default='single')
-    parser.add_argument('--selected', type=int, default=1)
+    parser.add_argument('--selected', type=int, default=0)
     parser.add_argument('--digit-to-word', type=int, default=0)
     parser.add_argument('--config', type=str, default='/data/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--output_dir', type=str, default='Single')
@@ -49,6 +49,84 @@ def load_config():
 #     data_valid, data_test = train_test_split(data_test, test_size=0.50, shuffle=False)
 #     return data_train, data_valid, data_test
 
+# if (k not in df.columns.values.tolist()) or (not v) or (v['type'] != TYPE_DIGIT): continue
+# df[k] = df[k].apply(lambda x: replace_with_description(x, v['threshold'], v['discriminator']))
+
+def convert_json2notes_digit(k, v, rule):
+    # if rule["discriminator"] == DSMTR_LT:  # <
+    #     value = (f'{v}{rule["unit"]} (less than {rule["threshold"]} is normal, greater than or equal to {rule["threshold"]} is abnormal. '
+    #              f'the larger the value, the more abnormal it tends to be.')
+    # else:
+    #     value = (f'{v}{rule["unit"]} (greater than {rule["threshold"]} is normal, less than or equal to {rule["threshold"]} is abnormal.'
+    #         f'the smaller the value, the more abnormal it tends to be.')
+    threshold = rule['threshold']
+    colname = rule["fullname"] if "fullname" in rule and rule["fullname"] else k
+    if rule["discriminator"] == DSMTR_LT:  # <
+        # value = (f'{FLAG_NORM if v < threshold else FLAG_ABNORM} (less than {threshold} is normal, greater than or equal to {threshold} is abnormal. '
+        #          f'the larger the value, the more abnormal it tends to be.')
+        value = FLAG_NORM if v < threshold else FLAG_ABNORM
+    else:
+        # value = (f'{FLAG_NORM if v > threshold else FLAG_ABNORM} (greater than {threshold} is normal, less than or equal to {threshold} is abnormal.'
+        #     f'the smaller the value, the more abnormal it tends to be.')
+        value = FLAG_NORM if v > threshold else FLAG_ABNORM
+    return colname + ' is ' + value + '. '
+
+def convert_json2notes_digit_no(k, v, rule):
+    colname = rule["fullname"] if "fullname" in rule and rule["fullname"] else k
+    return colname + ' is ' + str(v) + rule["unit"] + '. '
+
+
+def convert_json2notes_word(k, v, rule):
+    return rule['note'].format(value=v) + '， '
+
+def convert_json2notes_word_p(k, v, rule):
+    choices, values = rule['choices'], rule['values']
+    value = ""
+    for i, choice in enumerate(choices):
+        if choice not in v: continue
+        value = values[i]
+    return rule['note'].format(value=value) + '， '
+
+
+def convert_json2notes_word_p2(k, v, rule):
+    choices, values = rule['choices'], rule['values']
+    choice, value = "", ""
+    for i, c in enumerate(choices):
+        if c not in v: continue
+        value = values[i]
+        choice = c
+    return rule['note'].format(choice=choice, value=value) + '，'
+
+
+def convert_json2notes(args, data_jsons):
+    data_notes = []
+    for row_json in data_jsons:
+        row_note = ""
+        for k, v in row_json.items():
+            # if (k not in rule_yiduo) or (not rule_yiduo[k]): continue
+            if k not in rule_yiduo:
+                logger.error(f"不在rule中：{k}")
+                continue
+            if not rule_yiduo[k]:
+                logger.warning(f"在rule中, 但是v为空：{k}")
+                continue
+            rule = rule_yiduo[k]
+            if rule['type'] == TYPE_DIGIT:
+                row_note += convert_json2notes_digit(k, v, rule)
+            elif rule['type'] == TYPE_DIGIT_NOR:
+                row_note += convert_json2notes_digit_no(k, v, rule)
+            elif rule['type'] == TYPE_WORD:
+                row_note += convert_json2notes_word(k, v, rule)
+            elif rule['type'] == TYPE_WORD_P:
+                row_note += convert_json2notes_word_p(k, v, rule)
+            elif rule['type'] == TYPE_WORD_P2:
+                row_note += convert_json2notes_word_p2(k, v, rule)
+            else:
+                logger.error(f'Unsupported type: {row_json}')
+        data_notes.append(row_note)
+    return data_notes
+
+
 def note_template(args, dataset):
     dataset['train'] = dataset['train'][dataset['train']['label'].isin(args.train_labels)]
     train_dataset = dataset['train'].loc[:, dataset['train'].columns != 'label']
@@ -57,18 +135,47 @@ def note_template(args, dataset):
     dataset['test'] = dataset['test'][dataset['test']['label'].isin(args.test_labels)]
     test_dataset = dataset['test'].loc[:, dataset['test'].columns != 'label']
     test_labels = dataset['test']['label'].values.tolist()
-    train_notes = train_dataset.apply(lambda row: ' '.join(f"{c} is {row[c]}" for c in train_dataset.columns),
-                                      axis=1).tolist()
-    test_notes = test_dataset.apply(lambda row: ' '.join(f"{c} is {row[c]}" for c in test_dataset.columns),
-                                    axis=1).tolist()
+    # train_notes = train_dataset.apply(lambda row: ' '.join(f"{c} is {row[c]}" for c in train_dataset.columns),
+    #                                   axis=1).tolist()
+    # test_notes = test_dataset.apply(lambda row: ' '.join(f"{c} is {row[c]}" for c in test_dataset.columns),
+    #                                 axis=1).tolist()
+    train_jsons = train_dataset.to_dict(orient='records')
+    test_jsons = test_dataset.to_dict(orient='records')
 
-    # 1 sft
-    sft_train_queries = []
-    for i, note in enumerate(train_notes):
+    train_notes_aln = convert_json2notes(args, train_jsons)
+
+    test_notes_aln = convert_json2notes(args, test_jsons)
+
+    train_dataset = preprocess_abbr(args, train_dataset)
+    test_dataset = preprocess_abbr(args, test_dataset)
+    train_jsons = train_dataset.to_dict(orient='records')
+    test_jsons = test_dataset.to_dict(orient='records')
+
+    # 0 align
+    aln_train_queries = []
+    for i, jsn in enumerate(train_jsons):
         sys_value = 'You are an ophthalmology specialist.'
         prompt = args.prompt['finetune_diagnose_require']
         if args.cls.lower() == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
-        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + note + '\n' + prompt
+        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + json.dumps(jsn, ensure_ascii=False) + '\n' + prompt
+        user_value = user_value.replace('"', "'")
+        ass_value = train_notes_aln[i]
+        patient_description = {'type': 'chatml',
+                               'source': 'self-made',
+                               'messages': [{'role': 'system', 'content': sys_value},
+                                            {'role': 'user', 'content': user_value},
+                                            {'role': 'assistant', 'content': ass_value}],
+                               }
+        aln_train_queries.append(patient_description)
+
+    # 1 sft
+    sft_train_queries = []
+    for i, jsn in enumerate(train_jsons):
+        sys_value = 'You are an ophthalmology specialist.'
+        prompt = args.prompt['finetune_diagnose_require']
+        if args.cls.lower() == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
+        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + json.dumps(jsn, ensure_ascii=False) + '\n' + prompt
+        user_value = user_value.replace('"', "'")
         ass_value = generate_ass_value_by_label(train_labels[i], args, 'pos')
         patient_description = {'type': 'chatml',
                                'source': 'self-made',
@@ -80,11 +187,12 @@ def note_template(args, dataset):
 
     # 2 dpo
     dpo_train_queries = []
-    for i, note in enumerate(train_notes):
+    for i, jsn in enumerate(train_jsons):
         sys_value = 'You are an ophthalmology specialist.'
         prompt = args.prompt['finetune_diagnose_require']
         if args.cls.lower() == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
-        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + note + '\n' + prompt
+        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + json.dumps(jsn, ensure_ascii=False) + '\n' + prompt
+        user_value = user_value.replace('"', "'")
         ass_value_pos = generate_ass_value_by_label(train_labels[i], args, 'pos')
         ass_value_neg = generate_ass_value_by_label(train_labels[i], args, 'neg')
         patient_description = {'type': 'chatml',
@@ -99,7 +207,7 @@ def note_template(args, dataset):
                                }
         dpo_train_queries.append(patient_description)
 
-    test_queries = [tq for tq in test_notes]  # add prompt
+    test_queries = [tq for tq in test_jsons]  # add prompt
 
     # logger.info(f'train note : {train_note[0]}')
     # logger.info(f'test note : {test_note[0]}')
@@ -113,6 +221,8 @@ def note_template(args, dataset):
                 f'{test_labels.count(2)}, '
                 f'{test_labels.count(3)}')
 
+    logger.info(f'align train query: {aln_train_queries[0]}')
+    logger.info(f'align test query: {test_notes_aln[0]}')
     logger.info(f'sft train query: {sft_train_queries[0]}')
     logger.info(f'dpo train query: {dpo_train_queries[0]}')
     logger.info(f'test query: {test_queries[0]}')
@@ -178,20 +288,32 @@ def load_dataset(args):
 def preprocess(args, df):
     df = preprocess_yd(args, df)
     df = preprocess_format(args, df)
-    if args.digit_to_word:
-        logger.info('====== digit to word ======')
-        df = preprocess_d2w(args, df)
-    else:
-        df = preprocess_digit(args, df)
-    df = preprocess_abbr(args, df)
+    # if args.digit_to_word:
+    #     logger.info('====== digit to word ======')
+    #     df = preprocess_d2w(args, df)
+    # else:
+    #     df = preprocess_digit(args, df)
+    # df = preprocess_abbr(args, df)
     df = preprocess_finetune(args, df)
     if args.selected:
         logger.info('====== selected features ======')
+        # columns = preprocess_abbr(args, df)
         df = preprocess_feature_select(args, df)
     return df
 
 
 def preprocess_feature_select(args, df):
+    with open(os.path.join(args.path['dataset_dir'], args.file_name['abbr_mapping']), 'r') as f:
+        abbr_map = json.load(f)
+    full_abbr_map_r = {}
+    for k, v in rule_yiduo.items():
+        if "fullname" in v:
+            full_abbr_map_r[v["fullname"]] = k
+        else:
+            full_abbr_map_r[k] = k
+    # abbr_map = {v:k for k, v in abbr_map.items()}
+    # matched_abbr = [abbr for abbr in df.columns if (abbr in abbr_map) and (abbr_map[abbr]) else ]
+
     # top 10 keys
     # top_k = ["label", 'BMI', '性别', '揉眼睛的频率', '年龄', '睡觉时是否打鼾或患有睡眠呼吸暂停综合征？',
     #          '每天使用电子屏幕（手机、电脑等）的总时间（小时）', '惯用手', '幼年时家庭经济状况',
@@ -351,7 +473,8 @@ def preprocess_feature_select(args, df):
         "Integrated radius",
 
     ]
-    df = df[top_k[:61]]  # include label
+    matched_abbr = [full_abbr_map_r[fullname] if fullname in full_abbr_map_r else fullname for fullname in top_k]
+    df = df[matched_abbr[:61]]  # include label
     # Top 40 keys
     # df = df[[
     #     "性别",
@@ -549,7 +672,7 @@ def preprocess_digit(args, df):  # digit to word
 
     # substitute digit to word
     for k, v in rule_yiduo.items():
-        if (k not in df.columns.values.tolist()) or (not v): continue
+        if (k not in df.columns.values.tolist()) or (not v) or (v['type']!=TYPE_DIGIT): continue
         df[k] = df[k].apply(lambda x: replace_with_description(x, v['threshold'], v['discriminator']))
 
         # df[k] = pd.cut(df[k], bins=v["bins"], labels=v["labels"], right=False, include_lowest=False)
