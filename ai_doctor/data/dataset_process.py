@@ -17,7 +17,7 @@ def load_config():
     parser = argparse.ArgumentParser()
     parser.add_argument('--cls', type=str, default='single')
     parser.add_argument('--selected', type=int, default=1)
-    parser.add_argument('--digit-to-word', type=int, default=1)
+    parser.add_argument('--digit-to-word', type=int, default=0)
     parser.add_argument('--config', type=str, default='/data/whr/hzm/code/qwen2/ai_doctor/config/dataset_config.yaml')
     parser.add_argument('--output_dir', type=str, default='Single')
     args = parser.parse_args()
@@ -180,6 +180,8 @@ def preprocess(args, df):
     df = preprocess_format(args, df)
     if args.digit_to_word:
         logger.info('====== digit to word ======')
+        df = preprocess_d2w(args, df)
+    else:
         df = preprocess_digit(args, df)
     df = preprocess_abbr(args, df)
     df = preprocess_finetune(args, df)
@@ -507,8 +509,48 @@ def preprocess_finetune(args, df):
     # select features
     return df
 
+def preprocess_digit(args, df):  # digit to word
+    def replace_with_description(x, threshold, discriminator):
 
-def preprocess_digit(args, df):
+        if discriminator == DSMTR_LT:  # <
+            if threshold < 0.1:
+                bins = [threshold + threshold * 5, threshold + threshold * 10, threshold + threshold * 15]
+            elif threshold < 100:
+                bins = [threshold + 5, threshold + 10, threshold + 15]
+            else:
+                bins = [threshold + 50, threshold + 100, threshold + 200]
+            # bins = threshold if threshold < 1 and isinstance(threshold, float) else [threshold-10,threshold,threshold+10]
+
+            # return (f'{x} (greater than {threshold} and less than or equal to {bins[0]} is mildly abnormal, '
+            #         f'greater than {bins[0]} and less than or equal to {bins[1]} is moderately abnormal, '
+            #         f'and greater than {bins[2]} is severely abnormal)')
+            return (
+                f'{x} (less than {threshold} is normal, greater than or equal to {threshold} and less than {bins[0]} is mildly abnormal, '
+                f'greater than or equal to {bins[0]} and less than {bins[1]} is moderately abnormal, '
+                f'and greater than or equal to {bins[1]} is severely abnormal)')
+        else:
+            if threshold < 0.1:
+                bins = [threshold - threshold * 5, threshold - threshold * 10, threshold - threshold * 15]
+            elif threshold < 100:
+                bins = [threshold - 5, threshold - 10, threshold - 15]
+            else:
+                bins = [threshold - 50, threshold - 100, threshold - 150]
+            # bins = threshold if threshold < 1 and isinstance(threshold, float) else [threshold-10,threshold,threshold+10]
+            return (
+                f'{x} (greater than or equal to {threshold} is normal, less than {threshold} and greater than or equal to {bins[0]} is mildly abnormal, '
+                f'less than {bins[0]} and greater than or equal to {bins[1]} is moderately abnormal, '
+                f'and less than {bins[1]} is severely abnormal)')
+
+    # substitute digit to word
+    for k, v in rule_yiduo.items():
+        if (k not in df.columns.values.tolist()) or (not v): continue
+        df[k] = df[k].apply(lambda x: replace_with_description(x, v['threshold'], v['discriminator']))
+
+        # df[k] = pd.cut(df[k], bins=v["bins"], labels=v["labels"], right=False, include_lowest=False)
+
+    return df
+
+def preprocess_d2w(args, df): # digit to word
     # substitute digit to word
     for k, v in rule_yiduo.items():
         if (k not in df.columns.values.tolist()) or (not v): continue
