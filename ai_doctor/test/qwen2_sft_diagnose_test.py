@@ -13,7 +13,7 @@ cuda='cuda:4'
 
 def load_config():
     parser = argparse.ArgumentParser()
-    parser.add_argument("--dir-id", type=str, default="dir-id")
+    parser.add_argument("--dir-id", type=str, default="20240912-163458")
     parser.add_argument("--selected", type=int, default=0)
     parser.add_argument("--cls", type=str, default="single")
     parser.add_argument("--lora", type=int, default=0)
@@ -121,7 +121,7 @@ def main():
         # print(diagnose_test_dataset[i])
         prompt = args.prompt['finetune_diagnose_require']
         if args.cls.lower() == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
-        content = diagnose_test_dataset[i] + '\n' + prompt
+        content = str(diagnose_test_dataset[i]) + '\n' + prompt
         messages = [
             {"role": "system", "content": "You are an ophthalmology specialist."},
             {"role": "user", "content": content}

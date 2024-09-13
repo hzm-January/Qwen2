@@ -53,7 +53,7 @@ def initial_args():
         args.train_data_path = os.path.join(args.train_data_path, args.dir_id, 'source', 'dpo_fs_train_data.jsonl')
     else:
         args.train_data_path = os.path.join(args.train_data_path, args.dir_id, 'source', 'dpo_train_data.jsonl')
-    logger.info(f"======= dpo Train data path: {args.train_data_path}")
+    logger.info(f"======= dpo Train model path: {args.model_name_or_path}, data path: {args.train_data_path}")
     # 根据CommonArgs中的config_option动态加载配置
     train_args = load_config(args.train_args_path)
     train_args.output_dir = os.path.join(train_args.output_dir, args.dir_id)
@@ -93,6 +93,7 @@ def create_tokenizer(args):
                                               # llama不支持fast
                                               use_fast=False if config.model_type == 'llama' else True
                                               )
+    tokenizer.add_special_tokens({'additional_special_tokens': ['<|extra_0|>', '<|extra_1|>']})
 
     # QWenTokenizer比较特殊，pad_token_id、bos_token_id、eos_token_id均为None。eod_id对应的token为<|endoftext|>
     if tokenizer.__class__.__name__ == 'QWenTokenizer':
@@ -222,6 +223,7 @@ def create_trainer(args, train_args):
     tokenizer = create_tokenizer(args)
     model_dict = create_model(args, train_args)
     model = model_dict['model']
+    model.resize_token_embeddings(len(tokenizer))
     peft_config = model_dict['peft_config']
 
     if args.task_type == 'sft':

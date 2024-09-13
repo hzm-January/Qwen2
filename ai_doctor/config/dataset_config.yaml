@@ -16,10 +16,12 @@ path:
 file_name:
   org_data: 'patient_infos.xlsx'
   abbr_mapping: 'abbr_mapping.json'
+  aln_train_data: 'aln_train_data.jsonl'
   sft_train_data: 'sft_train_data.jsonl'
   dpo_train_data: 'dpo_train_data.jsonl'
   test_data: 'test_data.jsonl'
   test_label: 'test_label.jsonl'
+  aln_fs_train_data: 'aln_fs_train_data.jsonl'
   sft_fs_train_data: 'sft_fs_train_data.jsonl'
   dpo_fs_train_data: 'dpo_fs_train_data.jsonl'
   test_fs_data: 'test_fs_data.jsonl'

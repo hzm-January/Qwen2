@@ -64,6 +64,10 @@ class TrainingArguments(transformers.TrainingArguments):
         },
     )
     use_lora: bool = False
+    # fix_vit: bool = True
+    fix_llm: bool = True
+    fix_embed: bool = True
+    fix_json_embed: bool = False
 
 
 @dataclass
@@ -329,6 +333,8 @@ def train():
         padding_side="right",
         use_fast=False,
     )
+    tokenizer.add_special_tokens({'additional_special_tokens': ['<|extra_0|>', '<|extra_1|>']})
+    model.resize_token_embeddings(len(tokenizer))
 
     if training_args.use_lora:
         lora_config = LoraConfig(
@@ -351,6 +357,28 @@ def train():
 
         if training_args.gradient_checkpointing:
             model.enable_input_require_grads()
+
+    # TODO: fix wegiht
+    if not training_args.use_lora:
+        if training_args.fix_llm: # 仅仅控制中心模块，不控制3个编码器模块
+            model.model.requires_grad_(False)
+            model.model.embed_tokens.requires_grad_(True)
+            model.transformer.json_embed.requires_grad_(True)
+            # model.transformer.visual.requires_grad_(True)
+            # if hasattr(model.transformer.visual, 'attn_pool'): # 永远训练
+            #     model.transformer.visual.attn_pool.requires_grad_(True)
+            #     model.transformer.visual.proj.requires_grad_(True)
+            #     model.transformer.visual.ln_post.requires_grad_(True)
+        if training_args.fix_embed:
+            model.model.embed_tokens.requires_grad_(False)
+        if training_args.fix_json_embed:
+            model.model.json_embed.requires_grad_(False)
+        # if training_args.fix_vit and hasattr(model,'transformer') and hasattr(model.transformer,'visual'):
+        #     model.transformer.visual.requires_grad_(False)
+        #     if hasattr(model.transformer.visual,'attn_pool'):
+        #         model.transformer.visual.attn_pool.requires_grad_(True)
+        #         model.transformer.visual.proj.requires_grad_(True)
+        #         model.transformer.visual.ln_post.requires_grad_(True)
 
     # Load data
     data_module = make_supervised_data_module(

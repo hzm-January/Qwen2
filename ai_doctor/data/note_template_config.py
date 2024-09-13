@@ -33,6 +33,7 @@ TYPE_WORD = 1
 TYPE_WORD_P = 2  # 需要特殊处理
 TYPE_WORD_P2 = 3  # 需要特殊处理choices values
 TYPE_DIGIT_NOR = 4  # 没有阈值
+special_column_type = {'每天在黑暗环境中使用电子屏幕的时间（小时）': str, '每天在户外阳光/紫外线下活动时间（小时）': str, '阅读书籍': str, '每天在户外阳光/紫外线下活动时间（小时）': str}
 rule_yiduo = {
     # "":{},
     # 性别	年龄	BMI	文化程度	幼年时家庭经济状况	揉眼睛的频率	每次揉眼持续时间	揉眼时的力度	最常揉眼的部位
@@ -67,9 +68,9 @@ rule_yiduo = {
     "幼年时居住地": {"type": TYPE_WORD, "note": "幼年在{value}居住"},
     "睡觉时是否偏好把手或手臂垫放在眼睛上？": {"type": TYPE_WORD_P, "choices": ["是", "否"], "values": ["偏好", "不会"], "note": "睡觉时{value}把手或手臂垫放在眼睛上"},
     "每天使用电子屏幕（手机、电脑等）的总时间（小时）": {"type": TYPE_WORD, "note": "每天使用电子屏幕（手机、电脑等）的总时间为{value}小时"},
-    "每天在黑暗环境中使用电子屏幕的时间（小时）": {"type": TYPE_WORD, "note": "每天在黑暗环境中使用电子屏幕的时间为{value}小时）"},
-    "阅读书籍": {"type": TYPE_WORD, "note": "每天阅读书籍的时间为{value}小时）"},
-    "每天在户外阳光/紫外线下活动时间（小时）": {"type": TYPE_WORD, "note": "每天在户外阳光/紫外线下活动时间为{value}小时）"},
+    "每天在黑暗环境中使用电子屏幕的时间（小时）": {"type": TYPE_WORD, "note": "每天在黑暗环境中使用电子屏幕的时间为{value}小时"},
+    "阅读书籍": {"type": TYPE_WORD, "note": "每天阅读书籍的时间为{value}小时"},
+    "每天在户外阳光/紫外线下活动时间（小时）": {"type": TYPE_WORD, "note": "每天在户外阳光/紫外线下活动时间为{value}小时"},
     "常在大量灰尘环境中工作或生活？": {"type": TYPE_WORD_P, "choices": ["是", "否"], "values": ["经常", "不常"], "note": "{value}在大量灰尘环境中工作或生活"},
     "常于夜间工作/学习？": {"type": TYPE_WORD_P, "choices": ["是", "否"], "values": ["经常", "不常"], "note": "{value}在大量灰尘环境中工作或生活"},
     "感到工作/学习压力很大？": {"type": TYPE_WORD_P, "choices": ["是", "否"], "values": ["", "没有"], "note": "{value}感到工作/学习压力很大"},

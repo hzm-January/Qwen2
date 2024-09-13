@@ -157,7 +157,7 @@ def note_template(args, dataset):
         sys_value = 'You are an ophthalmology specialist.'
         prompt = args.prompt['finetune_diagnose_require']
         if args.cls.lower() == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
-        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + json.dumps(jsn, ensure_ascii=False) + '\n' + prompt
+        user_value = args.prompt['finetune_diagnose_prefix'] + '\n ' + '<|extra_0|>' + str(jsn) + '<|extra_1|>' + '\n ' + prompt
         user_value = user_value.replace('"', "'")
         ass_value = train_notes_aln[i]
         patient_description = {'type': 'chatml',
@@ -174,7 +174,7 @@ def note_template(args, dataset):
         sys_value = 'You are an ophthalmology specialist.'
         prompt = args.prompt['finetune_diagnose_require']
         if args.cls.lower() == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
-        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + json.dumps(jsn, ensure_ascii=False) + '\n' + prompt
+        user_value = args.prompt['finetune_diagnose_prefix'] + '\n ' + '<|extra_0|>' + str(jsn) + '<|extra_1|>' + '\n ' + prompt
         user_value = user_value.replace('"', "'")
         ass_value = generate_ass_value_by_label(train_labels[i], args, 'pos')
         patient_description = {'type': 'chatml',
@@ -191,7 +191,7 @@ def note_template(args, dataset):
         sys_value = 'You are an ophthalmology specialist.'
         prompt = args.prompt['finetune_diagnose_require']
         if args.cls.lower() == 'multiple': prompt = args.prompt['finetune_diagnose_require_mc']
-        user_value = args.prompt['finetune_diagnose_prefix'] + '\n' + json.dumps(jsn, ensure_ascii=False) + '\n' + prompt
+        user_value = args.prompt['finetune_diagnose_prefix'] + '\n ' + '<|extra_0|>' + str(jsn) + '<|extra_1|>' + '\n ' + prompt
         user_value = user_value.replace('"', "'")
         ass_value_pos = generate_ass_value_by_label(train_labels[i], args, 'pos')
         ass_value_neg = generate_ass_value_by_label(train_labels[i], args, 'neg')
@@ -228,7 +228,7 @@ def note_template(args, dataset):
     logger.info(f'test query: {test_queries[0]}')
     logger.info(f'test label: {test_labels[0]}')
 
-    return sft_train_queries, dpo_train_queries, test_queries, test_labels
+    return aln_train_queries, sft_train_queries, dpo_train_queries, test_queries, test_labels
 
 
 def generate_ass_value_by_label(label, args, flag):
@@ -246,7 +246,7 @@ def generate_ass_value_by_label(label, args, flag):
 
 def load_dataset(args):
     # TODO: 1 load excel
-    df = pd.read_excel(os.path.join(args.path['dataset_dir'], args.file_name['org_data']), sheet_name=args.table_ids)
+    df = pd.read_excel(os.path.join(args.path['dataset_dir'], args.file_name['org_data']), sheet_name=args.table_ids, dtype=special_column_type)
     # abbr_map = dict(zip(am_df[am_df.columns[0]], am_df[am_df.columns[1]]))
     # df = pd.read_excel(load_path + file_names['org_data_xlsx'], sheet_name=None)
 
@@ -698,18 +698,25 @@ def main():
     dataset = load_dataset(args)
 
     # 3 template
-    sft_train_queries, dpo_train_queries, test_queries, test_labels = note_template(args, dataset)
+    aln_train_queries, sft_train_queries, dpo_train_queries, test_queries, test_labels = note_template(args, dataset)
 
     if args.selected:
+        aln_train_dataset_file_name = args.file_name['aln_fs_train_data']
         sft_train_dataset_file_name = args.file_name['sft_fs_train_data']
         dpo_train_dataset_file_name = args.file_name['dpo_fs_train_data']
         test_dataset_file_name = args.file_name['test_fs_data']
         test_label_file_name = args.file_name['test_fs_label']
     else:
+        aln_train_dataset_file_name = args.file_name['aln_train_data']
         sft_train_dataset_file_name = args.file_name['sft_train_data']
         dpo_train_dataset_file_name = args.file_name['dpo_train_data']
         test_dataset_file_name = args.file_name['test_data']
         test_label_file_name = args.file_name['test_label']
+
+    with open(os.path.join(args.path['dataset_dir'], aln_train_dataset_file_name), 'w') as f:
+        for i, row in enumerate(aln_train_queries):
+            if i == 0: logger.info(f'============== aln train query: {row}')
+            f.write(json.dumps(row, ensure_ascii=False) + '\n')
 
     with open(os.path.join(args.path['dataset_dir'], sft_train_dataset_file_name), 'w') as f:
         for i, row in enumerate(sft_train_queries):

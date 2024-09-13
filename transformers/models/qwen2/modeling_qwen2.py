@@ -826,6 +826,9 @@ class Qwen2Model(Qwen2PreTrainedModel):
         # Initialize weights and apply final processing
         self.post_init()
 
+        self.embed_dim = config.hidden_size
+        self.json_embed = nn.Embedding(self.vocab_size, self.embed_dim)  # 新增对json format数据的编码器
+
     def get_input_embeddings(self):
         return self.embed_tokens
 
@@ -846,6 +849,24 @@ class Qwen2Model(Qwen2PreTrainedModel):
         return_dict: Optional[bool] = None,
         cache_position: Optional[torch.LongTensor] = None,
     ) -> Union[Tuple, BaseModelOutputWithPast]:
+
+        # 利用<|extra_0|>和<|extra_1|>定位问卷json data并通过json_embed编码器编码
+        # '<|extra_0|>': 151646, '<|extra_1|>': 151647, '<|endoftext|>': 151643,
+        json_bos_pos = torch.where(input_ids == 151646)
+        json_eos_pos = torch.where(input_ids == 151647)
+        assert (json_bos_pos[0] == json_eos_pos[0]).all()
+        json_pos = torch.stack((json_bos_pos[0], json_bos_pos[1], json_eos_pos[1]), dim=1)
+        json_datas = []
+        max_length = 0
+        for i, a, b in json_pos:
+            if max_length < (b - a - 1): max_length = (b - a - 1).item()
+            json_data = input_ids[i][a + 1: b].tolist()
+            json_datas.append(json_data)
+        json_datas = [i + [151643] * (max_length - len(i)) for i in json_datas]  # "<|endoftext|>": 151643
+        json_datas = torch.LongTensor(json_datas).to(self.json_embed.weight.device)
+        json_datas = self.json_embed(json_datas)
+
+
         output_attentions = output_attentions if output_attentions is not None else self.config.output_attentions
         output_hidden_states = (
             output_hidden_states if output_hidden_states is not None else self.config.output_hidden_states
@@ -891,6 +912,11 @@ class Qwen2Model(Qwen2PreTrainedModel):
         )
 
         hidden_states = inputs_embeds
+
+        hidden_states = hidden_states.clone()
+
+        for idx, (i, a, b) in enumerate(json_pos):
+            hidden_states[i][a + 1: b] = json_datas[idx][:b - a - 1]  # 只赋值中间227个，特殊字符依然保留
 
         # decoder layers
         all_hidden_states = () if output_hidden_states else None
@@ -1125,8 +1151,8 @@ class Qwen2ForCausalLM(Qwen2PreTrainedModel):
             shift_logits = logits[..., :-1, :].contiguous()
             shift_labels = labels[..., 1:].contiguous()
             # Flatten the tokens
-            loss_fct = CrossEntropyLoss()
-            # loss_fct = FocalLoss(gamma=2.0)
+            # loss_fct = CrossEntropyLoss()
+            loss_fct = FocalLoss(gamma=2.0)
             shift_logits = shift_logits.view(-1, self.config.vocab_size)
             shift_labels = shift_labels.view(-1)
             # Enable model parallelism

@@ -76,3 +76,29 @@ if not lb:
     print('lb not')
 else:
     print('lb ok')
+
+test_str = "adasfas{aa}asfasf"
+aa = 2
+print(test_str)
+
+
+# 示例数据
+strarra = ["abbr1", "abbr2", "abbr3", "abbr4", "abbr5"]  # 简称数组 (假设长度为100)
+strarrb = ["full1", "full2", "full3", "full4", "full5"]  # 全称数组 (假设长度为10)
+# 假设这个json是简称与全称的对应关系
+json_data = {
+    "abbr1": "full1",
+    "abbr2": "full2",
+    "abbr6": "full6",
+    "abbr3": "full3"
+}
+if "abbr1" in json_data:
+    print(json_data["abbr1"])
+
+# 找出strarra中所有有对应全称的简称
+matched_abbr = [abbr for abbr in strarra if abbr in json_data]
+
+# 输出有对应全称的简称
+print(matched_abbr)
+print("==========")
+print(str(json_data))
