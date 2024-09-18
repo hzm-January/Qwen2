@@ -1,6 +1,5 @@
 # This code is based on the revised code from fastchat based on tatsu-lab/stanford_alpaca.
 
-
 import json
 import logging
 import os
@@ -264,18 +263,8 @@ def make_supervised_data_module(
     return dict(train_dataset=train_dataset, eval_dataset=eval_dataset)
 
 
-def train():
+def train(model_args, data_args, training_args, lora_args):
     global local_rank
-
-    parser = transformers.HfArgumentParser(
-        (ModelArguments, DataArguments, TrainingArguments, LoraArguments)
-    )
-    (
-        model_args,
-        data_args,
-        training_args,
-        lora_args,
-    ) = parser.parse_args_into_dataclasses()
 
     # This serves for single-gpu qlora.
     if (
@@ -407,5 +396,6 @@ def train():
     )
 
 
-if __name__ == "__main__":
-    train()
+# if __name__ == "__main__":
+#
+#     train()
