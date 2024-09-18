@@ -16,6 +16,7 @@ USE_LORA=False
 Q_LORA=False
 SELECTED=1
 DIGIT_TO_WORD=0
+#LABEL_SMOOTHING_FACTOR=0.1
 
 ROOT="/data/whr"
 CODE_ROOT="$ROOT/hzm/code/qwen2"
@@ -121,6 +122,7 @@ do
       --gradient_checkpointing \
       --deepspeed ${DS_CONFIG_PATH} \
       "
+#      --label_smoothing_factor ${LABEL_SMOOTHING_FACTOR}
 run_sh_sft="CUDA_VISIBLE_DEVICES=$CUDA_IDS \
       $ROOT/anaconda3/envs/hzm-qwen2/bin/torchrun \
       $DISTRIBUTED_ARGS \
@@ -154,6 +156,7 @@ run_sh_sft="CUDA_VISIBLE_DEVICES=$CUDA_IDS \
       --gradient_checkpointing \
       --deepspeed ${DS_CONFIG_PATH} \
       "
+#--label_smoothing_factor ${LABEL_SMOOTHING_FACTOR}
 
   # 1 generate train and test dataset with selected features
   /data/whr/anaconda3/envs/hzm-qwen2/bin/python3.9 $CODE_ROOT/ai_doctor/data/dataset_process.py --digit-to-word $DIGIT_TO_WORD --cls $CLS --selected $SELECTED 2>&1 | tee "$SFT_OUTPUT_DIR/train_model.log"

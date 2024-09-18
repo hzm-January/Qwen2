@@ -83,6 +83,7 @@ class TrainArgument(DPOConfig):
     ref_model_mixup_alpha: float = 0.9
     ref_model_sync_steps: int = 64
     rpo_alpha: Optional[float] = None
+    # label_smoothing_factor: Optional[float] = 0.1
     fix_llm: bool = False
     fix_embed: bool = False
     fix_json_embed: bool = False
